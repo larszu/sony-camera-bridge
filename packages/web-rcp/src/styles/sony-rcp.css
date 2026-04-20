@@ -1,6 +1,6 @@
 /**
- * Sony RCP-1500 Style CSS
- * Realistic broadcast panel look with metal textures, 3D knobs, and tally lights
+ * Software-Style RCP Panel CSS
+ * Flat design matching Sony camera control software
  */
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -8,691 +8,556 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* Sony panel colors */
-  --sony-panel-bg: #2a2d30;
-  --sony-panel-border: #1a1c1e;
-  --sony-section-bg: #232527;
-  --sony-metal: linear-gradient(145deg, #3a3d40 0%, #252729 50%, #1f2123 100%);
-  --sony-metal-dark: linear-gradient(145deg, #2a2d30 0%, #1a1c1e 100%);
-  
-  /* Knob colors */
-  --knob-body: linear-gradient(145deg, #4a4d50 0%, #2a2d30 40%, #1f2123 100%);
-  --knob-cap: linear-gradient(145deg, #555 0%, #333 50%, #222 100%);
-  --knob-ring: #1a1a1a;
-  --knob-indicator: #fff;
-  --knob-tick: #666;
-  
-  /* Button colors */
-  --btn-face: linear-gradient(180deg, #444 0%, #333 50%, #222 100%);
-  --btn-active: linear-gradient(180deg, #555 0%, #444 50%, #333 100%);
-  
-  /* LED colors */
-  --led-off: #333;
-  --led-red: #ff2020;
-  --led-green: #20ff20;
-  --led-yellow: #ffcc00;
-  --led-blue: #2080ff;
-  
-  /* Tally colors */
-  --tally-program: #ff0000;
-  --tally-preview: #00ff00;
-  --tally-off: #1a1a1a;
-  
-  /* Text */
-  --sony-text: #ccc;
-  --sony-text-dim: #888;
-  --sony-text-bright: #fff;
+  --rcp-bg: #1a1a1a;
+  --rcp-panel: #252525;
+  --rcp-border: #333;
+  --rcp-text: #888;
+  --rcp-text-bright: #ccc;
+  --rcp-btn-bg: #333;
+  --rcp-btn-hover: #444;
+  --rcp-btn-active: #4a4a4a;
+  --rcp-green: #00cc44;
+  --rcp-red: #ff3333;
+  --rcp-amber: #ff8800;
+  --rcp-blue: #0088ff;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   TALLY BAR
+   MAIN PANEL
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.tally-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 48px;
-  padding: 0 16px;
-  background: var(--sony-metal-dark);
-  border-bottom: 2px solid var(--sony-panel-border);
-  transition: background 0.2s;
-}
-
-.tally-bar--program {
-  background: linear-gradient(180deg, rgba(255,0,0,0.3) 0%, rgba(255,0,0,0.1) 100%);
-  border-bottom-color: var(--tally-program);
-}
-
-.tally-bar--preview {
-  background: linear-gradient(180deg, rgba(0,255,0,0.15) 0%, rgba(0,255,0,0.05) 100%);
-  border-bottom-color: var(--tally-preview);
-}
-
-.tally-bar__left,
-.tally-bar__right {
-  display: flex;
-  gap: 8px;
-}
-
-.tally-bar__center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tally-bar__camera-id {
-  font-family: 'Arial Black', sans-serif;
-  font-size: 24px;
-  font-weight: 900;
-  color: var(--sony-text-bright);
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-  letter-spacing: 2px;
-}
-
-.tally-lamp {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 32px;
-  background: var(--led-off);
-  border: 2px solid #111;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #555;
-  cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
-}
-
-.tally-lamp--program.tally-lamp--active {
-  background: var(--tally-program);
-  color: #fff;
-  box-shadow: 
-    inset 0 2px 4px rgba(255,255,255,0.3),
-    0 0 20px var(--tally-program),
-    0 0 40px rgba(255,0,0,0.5);
-  animation: tally-pulse 1s ease-in-out infinite;
-}
-
-.tally-lamp--preview.tally-lamp--active {
-  background: var(--tally-preview);
-  color: #000;
-  box-shadow: 
-    inset 0 2px 4px rgba(255,255,255,0.3),
-    0 0 15px var(--tally-preview);
-}
-
-.tally-lamp--iso.tally-lamp--active {
-  background: var(--led-red);
-  color: #fff;
-  box-shadow: 0 0 10px var(--led-red);
-  animation: rec-blink 1s step-end infinite;
-}
-
-@keyframes tally-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
-}
-
-@keyframes rec-blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0.6; }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ROTARY KNOB
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.rotary-knob {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
+.rcp-panel {
+  background: var(--rcp-bg);
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  font-size: 12px;
+  color: var(--rcp-text);
+  max-width: 360px;
+  border: 1px solid #111;
   user-select: none;
 }
 
-.rotary-knob__label {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--sony-text);
-}
-
-.rotary-knob__body {
-  position: relative;
-  cursor: grab;
-}
-
-.rotary-knob__body:active {
-  cursor: grabbing;
-}
-
-.rotary-knob--dragging .rotary-knob__body {
-  cursor: grabbing;
-}
-
-/* Sizes */
-.rotary-knob--sm .rotary-knob__body { width: 48px; height: 48px; }
-.rotary-knob--md .rotary-knob__body { width: 64px; height: 64px; }
-.rotary-knob--lg .rotary-knob__body { width: 80px; height: 80px; }
-
-/* Outer ring with ticks */
-.rotary-knob__ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: var(--knob-ring);
-  box-shadow: 
-    inset 0 2px 4px rgba(0,0,0,0.8),
-    0 1px 2px rgba(255,255,255,0.1);
-}
-
-.rotary-knob__tick {
-  position: absolute;
-  top: 4px;
-  left: 50%;
-  width: 2px;
-  height: 6px;
-  margin-left: -1px;
-  background: var(--knob-tick);
-  transform-origin: center calc(100% + 50% - 10px);
-}
-
-.rotary-knob--sm .rotary-knob__tick { top: 2px; height: 4px; }
-.rotary-knob--lg .rotary-knob__tick { top: 5px; height: 8px; }
-
-/* Knob cap */
-.rotary-knob__cap {
-  position: absolute;
-  inset: 15%;
-  border-radius: 50%;
-  background: var(--knob-cap);
-  box-shadow: 
-    0 4px 8px rgba(0,0,0,0.6),
-    inset 0 2px 4px rgba(255,255,255,0.2),
-    inset 0 -2px 4px rgba(0,0,0,0.4);
-  transition: transform 0.05s ease-out;
-}
-
-.rotary-knob__indicator {
-  position: absolute;
-  top: 8%;
-  left: 50%;
-  width: 3px;
-  height: 20%;
-  margin-left: -1.5px;
-  background: var(--knob-indicator);
-  border-radius: 1.5px;
-  box-shadow: 0 0 4px rgba(255,255,255,0.5);
-}
-
-.rotary-knob--sm .rotary-knob__indicator { width: 2px; margin-left: -1px; }
-
-/* Grip lines */
-.rotary-knob__grip {
-  position: absolute;
-  inset: 25%;
-  border-radius: 50%;
-  overflow: hidden;
-}
-
-.rotary-knob__grip-line {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 1px;
-  height: 100%;
-  background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.2) 100%);
-  transform-origin: center;
-}
-
-.rotary-knob__grip-line:nth-child(1) { transform: rotate(0deg); }
-.rotary-knob__grip-line:nth-child(2) { transform: rotate(30deg); }
-.rotary-knob__grip-line:nth-child(3) { transform: rotate(60deg); }
-.rotary-knob__grip-line:nth-child(4) { transform: rotate(90deg); }
-.rotary-knob__grip-line:nth-child(5) { transform: rotate(120deg); }
-.rotary-knob__grip-line:nth-child(6) { transform: rotate(150deg); }
-.rotary-knob__grip-line:nth-child(7) { transform: rotate(180deg); }
-.rotary-knob__grip-line:nth-child(8) { transform: rotate(210deg); }
-.rotary-knob__grip-line:nth-child(9) { transform: rotate(240deg); }
-.rotary-knob__grip-line:nth-child(10) { transform: rotate(270deg); }
-.rotary-knob__grip-line:nth-child(11) { transform: rotate(300deg); }
-.rotary-knob__grip-line:nth-child(12) { transform: rotate(330deg); }
-
-/* Center dot */
-.rotary-knob__center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 8px;
-  height: 8px;
-  margin: -4px 0 0 -4px;
-  border-radius: 50%;
-  background: #111;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.8);
-}
-
-.rotary-knob--sm .rotary-knob__center { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; }
-.rotary-knob--lg .rotary-knob__center { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
-
-/* Value display */
-.rotary-knob__value {
-  font-size: 11px;
-  font-family: 'Consolas', 'Monaco', monospace;
-  color: var(--sony-text);
-  min-width: 36px;
-  text-align: center;
-  background: #111;
-  padding: 2px 6px;
-  border-radius: 3px;
-  border: 1px solid #333;
-}
-
-/* Color variants - colored indicator */
-.rotary-knob--red .rotary-knob__indicator { background: var(--led-red); box-shadow: 0 0 6px var(--led-red); }
-.rotary-knob--green .rotary-knob__indicator { background: var(--led-green); box-shadow: 0 0 6px var(--led-green); }
-.rotary-knob--blue .rotary-knob__indicator { background: var(--led-blue); box-shadow: 0 0 6px var(--led-blue); }
-.rotary-knob--yellow .rotary-knob__indicator { background: var(--led-yellow); box-shadow: 0 0 6px var(--led-yellow); }
-
-/* Disabled state */
-.rotary-knob--disabled {
-  opacity: 0.4;
+.rcp-panel--disabled {
+  opacity: 0.5;
   pointer-events: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   SONY BUTTON
+   TOP BAR
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.sony-btn {
+.rcp-topbar {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-width: 48px;
-  height: 40px;
-  padding: 4px 10px;
-  background: var(--btn-face);
-  border: 1px solid #1a1a1a;
-  border-radius: 4px;
-  cursor: pointer;
-  position: relative;
-  box-shadow: 
-    0 3px 6px rgba(0,0,0,0.5),
-    inset 0 1px 0 rgba(255,255,255,0.1);
-  transition: all 0.1s;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: #222;
+  border-bottom: 1px solid #333;
 }
 
-.sony-btn:hover {
-  background: var(--btn-active);
-}
-
-.sony-btn:active {
-  transform: translateY(1px);
-  box-shadow: 
-    0 1px 3px rgba(0,0,0,0.5),
-    inset 0 1px 0 rgba(255,255,255,0.1);
-}
-
-.sony-btn__led {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--led-off);
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
-}
-
-.sony-btn--active .sony-btn__led {
-  background: var(--led-green);
-  box-shadow: 0 0 6px var(--led-green);
-}
-
-.sony-btn--red.sony-btn--active .sony-btn__led {
-  background: var(--led-red);
-  box-shadow: 0 0 6px var(--led-red);
-}
-
-.sony-btn--yellow.sony-btn--active .sony-btn__led {
-  background: var(--led-yellow);
-  box-shadow: 0 0 6px var(--led-yellow);
-}
-
-.sony-btn--blue.sony-btn--active .sony-btn__led {
-  background: var(--led-blue);
-  box-shadow: 0 0 6px var(--led-blue);
-}
-
-.sony-btn__label {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--sony-text);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.sony-btn__sublabel {
-  font-size: 8px;
-  color: var(--sony-text-dim);
-}
-
-.sony-btn--disabled {
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-/* Sizes */
-.sony-btn--sm { min-width: 36px; height: 32px; padding: 2px 6px; }
-.sony-btn--sm .sony-btn__label { font-size: 9px; }
-.sony-btn--lg { min-width: 64px; height: 48px; }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   SONY SELECT
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.sony-select {
+.rcp-topbar__left {
   display: flex;
-  flex-direction: column;
+  gap: 2px;
+}
+
+.rcp-topbar__center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.rcp-topbar__right {
+  display: flex;
   gap: 4px;
 }
 
-.sony-select__label {
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--sony-text-dim);
-  text-align: center;
+.rcp-tab {
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #666;
+  border: 1px solid transparent;
+  cursor: pointer;
 }
 
-.sony-select__controls {
+.rcp-tab--active {
+  color: #fff;
+  background: #333;
+  border-color: #444;
+}
+
+.rcp-camera-id {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--rcp-amber);
+  text-shadow: 0 0 10px rgba(255, 136, 0, 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RCP BUTTON
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.rcp-btn {
+  padding: 6px 12px;
+  min-width: 50px;
+  background: var(--rcp-btn-bg);
+  border: 1px solid #444;
+  color: var(--rcp-text);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.rcp-btn:hover {
+  background: var(--rcp-btn-hover);
+}
+
+.rcp-btn:active {
+  background: var(--rcp-btn-active);
+}
+
+.rcp-btn--active {
+  background: #444;
+  border-color: #666;
+  color: #fff;
+}
+
+.rcp-btn--green {
+  background: var(--rcp-green);
+  border-color: #00aa33;
+  color: #000;
+}
+
+.rcp-btn--green:hover {
+  background: #00dd55;
+}
+
+.rcp-btn--red {
+  background: var(--rcp-red);
+  border-color: #cc2222;
+  color: #fff;
+}
+
+.rcp-btn--disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROWS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.rcp-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  gap: 4px;
+}
+
+.rcp-row--mode {
+  border-bottom: 1px solid #333;
+}
+
+.rcp-row--functions {
+  border-bottom: 1px solid #333;
+  gap: 6px;
+}
+
+.rcp-row--gain {
+  padding: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.rcp-row__spacer {
+  flex: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SELECTOR (up/down with display)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.rcp-selector {
   display: flex;
   align-items: center;
   gap: 2px;
 }
 
-.sony-select__btn {
-  width: 24px;
-  height: 28px;
-  background: var(--btn-face);
-  border: 1px solid #1a1a1a;
-  border-radius: 3px;
-  color: var(--sony-text);
-  font-size: 10px;
+.rcp-selector--disabled {
+  opacity: 0.4;
+}
+
+.rcp-selector__display {
+  min-width: 48px;
+  padding: 6px 10px;
+  background: #111;
+  border: 2px solid #333;
+  color: var(--rcp-green);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.rcp-selector__arrows {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.rcp-selector__arrows button {
+  width: 20px;
+  height: 16px;
+  background: #333;
+  border: 1px solid #444;
+  color: #888;
+  font-size: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.1s;
 }
 
-.sony-select__btn:hover:not(:disabled) {
-  background: var(--btn-active);
+.rcp-selector__arrows button:hover {
+  background: #444;
+  color: #fff;
 }
 
-.sony-select__btn:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
-
-.sony-select__display {
-  min-width: 56px;
-  height: 28px;
-  background: #111;
-  border: 1px solid #333;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 11px;
-  color: var(--led-green);
-  padding: 0 6px;
-}
-
-.sony-select--disabled {
-  opacity: 0.4;
-  pointer-events: none;
+.rcp-selector__label {
+  margin-left: 8px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #666;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   SONY FADER
+   VALUE BOX (RGB values)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.sony-fader {
+.rcp-value-box {
+  position: relative;
+  width: 48px;
+  height: 40px;
+  background: #111;
+  border: 2px solid #444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rcp-value-box--red { border-color: #cc3333; }
+.rcp-value-box--green { border-color: #33cc33; }
+.rcp-value-box--blue { border-color: #3377cc; }
+
+.rcp-value-box__value {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.rcp-value-box--red .rcp-value-box__value { color: #ff4444; }
+.rcp-value-box--green .rcp-value-box__value { color: #44ff44; }
+.rcp-value-box--blue .rcp-value-box__value { color: #4488ff; }
+
+.rcp-value-box__arrows {
+  position: absolute;
+  right: -18px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.rcp-value-box__arrows button {
+  width: 16px;
+  height: 18px;
+  background: #333;
+  border: 1px solid #444;
+  color: #666;
+  font-size: 7px;
+  cursor: pointer;
+}
+
+.rcp-value-box__arrows button:hover {
+  background: #444;
+  color: #fff;
+}
+
+.rcp-value-box--disabled {
+  opacity: 0.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTIONS (WHITE / BLACK)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.rcp-section {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  padding: 8px;
+  gap: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.rcp-section__header {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.rcp-section__label {
+  padding: 2px 8px;
+  background: #333;
+  border: 1px solid #444;
+  font-size: 9px;
+  font-weight: 600;
+  color: #888;
+}
+
+.rcp-section__row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.sony-fader--vertical {
-  flex-direction: column;
-  height: 160px;
-}
-
-.sony-fader__label {
+.rcp-section__divider-label {
   font-size: 9px;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--sony-text-dim);
+  color: #555;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
 }
 
-.sony-fader__track {
-  position: relative;
+.rcp-rgb-group {
+  display: flex;
+  gap: 8px;
+}
+
+.rcp-section__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 8px;
+  border-left: 1px solid #333;
+}
+
+.rcp-value-display {
+  text-align: center;
+}
+
+.rcp-value-display__value {
+  display: block;
+  padding: 4px 8px;
   background: #111;
-  border: 2px solid #1a1a1a;
-  border-radius: 4px;
-  overflow: hidden;
+  border: 1px solid #333;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  color: #fff;
 }
 
-.sony-fader--vertical .sony-fader__track {
+.rcp-value-display__label {
+  display: block;
+  margin-top: 2px;
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #555;
+  line-height: 1.2;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   IRIS SECTION
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.rcp-section--iris {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  padding: 12px 8px;
+  gap: 12px;
+  border-bottom: 1px solid #333;
+}
+
+.rcp-iris-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rcp-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.rcp-checkbox input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--rcp-green);
+}
+
+.rcp-checkbox__label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.rcp-filter-group {
+  display: flex;
+  gap: 8px;
+}
+
+.rcp-iris-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rcp-iris-display {
+  text-align: center;
+}
+
+.rcp-iris-display__value {
+  display: block;
+  padding: 8px 16px;
+  background: #111;
+  border: 2px solid #444;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 28px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.rcp-iris-display__label {
+  display: block;
+  margin-top: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--rcp-amber);
+}
+
+.rcp-iris-right {
+  display: flex;
+  align-items: center;
+}
+
+.rcp-fader {
+  display: flex;
+  gap: 4px;
+  height: 100px;
+}
+
+.rcp-fader__scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 9px;
+  color: #666;
+}
+
+.rcp-fader__track {
+  position: relative;
   width: 24px;
-  height: 120px;
+  height: 100%;
+  background: linear-gradient(to top, #1a1a1a, #333);
+  border: 1px solid #444;
 }
 
-.sony-fader--horizontal .sony-fader__track {
-  width: 120px;
-  height: 24px;
-}
-
-.sony-fader__fill {
-  position: absolute;
-  background: linear-gradient(180deg, var(--led-green) 0%, #0a5a0a 100%);
-  opacity: 0.6;
-}
-
-.sony-fader--vertical .sony-fader__fill {
-  bottom: 0;
-  left: 0;
-  right: 0;
-}
-
-.sony-fader--horizontal .sony-fader__fill {
-  top: 0;
-  bottom: 0;
-  left: 0;
-}
-
-.sony-fader__input {
+.rcp-fader__input {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   opacity: 0;
   cursor: pointer;
-}
-
-.sony-fader--vertical .sony-fader__input {
   writing-mode: vertical-lr;
   direction: rtl;
 }
 
-.sony-fader__handle {
+.rcp-fader__handle {
   position: absolute;
-  background: linear-gradient(180deg, #666 0%, #444 50%, #333 100%);
-  border: 1px solid #222;
-  border-radius: 3px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-  pointer-events: none;
-}
-
-.sony-fader--vertical .sony-fader__handle {
   left: 2px;
   right: 2px;
-  height: 16px;
+  height: 8px;
+  background: linear-gradient(to bottom, #666, #444);
+  border: 1px solid #777;
+  pointer-events: none;
   transform: translateY(50%);
 }
 
-.sony-fader--horizontal .sony-fader__handle {
-  top: 2px;
-  bottom: 2px;
-  width: 16px;
-  transform: translateX(-50%);
-}
-
-.sony-fader__value {
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 10px;
-  color: var(--sony-text);
-  min-width: 28px;
-  text-align: center;
-}
-
-.sony-fader--disabled {
-  opacity: 0.4;
-  pointer-events: none;
+/* Scale markers on fader */
+.rcp-fader__track::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom,
+    transparent 0%, #44ff44 45%, #44ff44 55%, transparent 100%
+  );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   SONY RCP PANEL
+   BOTTOM BAR
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.sony-rcp {
-  background: var(--sony-panel-bg);
-  border: 3px solid var(--sony-panel-border);
-  border-radius: 8px;
-  box-shadow: 
-    0 10px 40px rgba(0,0,0,0.6),
-    inset 0 1px 0 rgba(255,255,255,0.05);
-  overflow: hidden;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.sony-rcp--disabled {
-  opacity: 0.6;
-}
-
-.sony-rcp__body {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr 1fr;
-  gap: 2px;
-  padding: 2px;
-  background: #111;
-}
-
-.sony-rcp__section {
-  background: var(--sony-section-bg);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.sony-rcp__section-header {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: var(--sony-text-dim);
-  text-align: center;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #333;
-}
-
-.sony-rcp__subsection {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sony-rcp__knob-row {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.sony-rcp__btn-row {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-}
-
-.sony-rcp__row {
-  display: flex;
-  justify-content: center;
-}
-
-.sony-rcp__iris-group {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-
-/* Footer */
-.sony-rcp__footer {
+.rcp-bottombar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--sony-metal);
-  border-top: 2px solid #111;
+  padding: 8px;
+  background: #222;
+  border-top: 1px solid #333;
 }
 
-.sony-rcp__system-btns {
+.rcp-status-indicators {
   display: flex;
-  gap: 8px;
+  gap: 4px;
 }
 
-.sony-rcp__logo {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+.rcp-status {
+  padding: 3px 8px;
+  font-size: 9px;
+  font-weight: 600;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  color: #444;
 }
 
-.sony-rcp__logo-text {
-  font-family: 'Arial Black', sans-serif;
-  font-size: 18px;
-  font-weight: 900;
-  color: #888;
-  letter-spacing: 4px;
-}
-
-.sony-rcp__model {
-  font-size: 10px;
-  color: #555;
-  letter-spacing: 1px;
-}
+.rcp-status--out.rcp-status--active { color: var(--rcp-amber); border-color: var(--rcp-amber); }
+.rcp-status--opt.rcp-status--active { color: var(--rcp-green); border-color: var(--rcp-green); }
+.rcp-status--sync.rcp-status--active { color: var(--rcp-green); border-color: var(--rcp-green); }
+.rcp-status--drop.rcp-status--active { color: var(--rcp-red); border-color: var(--rcp-red); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════════════════════════════════════════ */
 
-@media (max-width: 800px) {
-  .sony-rcp__body {
-    grid-template-columns: 1fr;
+@media (max-width: 400px) {
+  .rcp-panel {
+    max-width: 100%;
   }
   
-  .sony-rcp__iris-group {
-    flex-direction: column;
+  .rcp-camera-id {
+    font-size: 24px;
+  }
+  
+  .rcp-rgb-group {
+    gap: 4px;
+  }
+  
+  .rcp-value-box {
+    width: 40px;
+    height: 36px;
+  }
+  
+  .rcp-value-box__value {
+    font-size: 14px;
   }
 }

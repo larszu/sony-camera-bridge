@@ -1,7 +1,5 @@
-import React from 'react';
-import { RotaryKnob } from './RotaryKnob.tsx';
-import { TallyBar, TallyState } from './TallyBar.tsx';
-import { SonyButton, SonySelect, SonyFader } from './SonyControls.tsx';
+import React, { useState } from 'react';
+import { TallyState } from './TallyBar.tsx';
 import type { CameraState } from '../types.ts';
 
 interface SonyRcpPanelProps {
@@ -12,309 +10,304 @@ interface SonyRcpPanelProps {
   onSetTally: (tally: Partial<TallyState>) => void;
 }
 
-// Gain options (0dB to +18dB)
-const GAIN_OPTIONS = [
-  { value: 0, label: '0dB' },
-  { value: 1, label: '+3dB' },
-  { value: 2, label: '+6dB' },
-  { value: 3, label: '+9dB' },
-  { value: 4, label: '+12dB' },
-  { value: 5, label: '+15dB' },
-  { value: 6, label: '+18dB' },
-];
+// Gain options
+const GAIN_VALUES = ['0dB', '+3dB', '+6dB', '+9dB', '+12dB', '+15dB', '+18dB'];
+// ND options
+const ND_VALUES = ['1', '2', '3', '4'];
+// CC options  
+const CC_VALUES = ['A', 'B', 'C', 'D'];
 
-// ND filter options
-const ND_OPTIONS = [
-  { value: 0, label: 'CLEAR' },
-  { value: 1, label: '1/4' },
-  { value: 2, label: '1/16' },
-  { value: 3, label: '1/64' },
-];
+/** Value box with color border */
+function ValueBox({ value, color, label, onChange, disabled }: {
+  value: number;
+  color: 'red' | 'green' | 'blue';
+  label?: string;
+  onChange?: (delta: number) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className={`rcp-value-box rcp-value-box--${color} ${disabled ? 'rcp-value-box--disabled' : ''}`}>
+      <span className="rcp-value-box__value">{value}</span>
+      {label && <span className="rcp-value-box__label">{label}</span>}
+      {onChange && (
+        <div className="rcp-value-box__arrows">
+          <button onClick={() => onChange(1)} disabled={disabled}>▲</button>
+          <button onClick={() => onChange(-1)} disabled={disabled}>▼</button>
+        </div>
+      )}
+    </div>
+  );
+}
 
-// Shutter options
-const SHUTTER_OPTIONS = [
-  { value: 0, label: 'OFF' },
-  { value: 1, label: '1/60' },
-  { value: 2, label: '1/100' },
-  { value: 3, label: '1/120' },
-  { value: 4, label: '1/250' },
-  { value: 5, label: '1/500' },
-  { value: 6, label: '1/1000' },
-  { value: 7, label: '1/2000' },
-];
+/** Selector with up/down arrows */
+function Selector({ value, label, onChange, disabled }: {
+  value: string;
+  label: string;
+  onChange?: (delta: number) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className={`rcp-selector ${disabled ? 'rcp-selector--disabled' : ''}`}>
+      <div className="rcp-selector__display">{value}</div>
+      {onChange && (
+        <div className="rcp-selector__arrows">
+          <button onClick={() => onChange(1)} disabled={disabled}>▲</button>
+          <button onClick={() => onChange(-1)} disabled={disabled}>▼</button>
+        </div>
+      )}
+      <div className="rcp-selector__label">{label}</div>
+    </div>
+  );
+}
+
+/** RCP Button */
+function RcpButton({ label, active, variant, onClick, disabled }: {
+  label: string;
+  active?: boolean;
+  variant?: 'default' | 'green' | 'red';
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  const classes = [
+    'rcp-btn',
+    active && 'rcp-btn--active',
+    variant && `rcp-btn--${variant}`,
+    disabled && 'rcp-btn--disabled'
+  ].filter(Boolean).join(' ');
+  return <button className={classes} onClick={onClick} disabled={disabled}>{label}</button>;
+}
 
 /**
- * Sony RCP-1500 style control panel
- * Full camera control with realistic Sony look and feel
+ * Software-style RCP Panel
  */
 export function SonyRcpPanel({ state, tally, disabled = false, onCommand, onSetTally }: SonyRcpPanelProps) {
+  const [autoIris, setAutoIris] = useState(false);
   const cmd = (c: string, params: Record<string, unknown> = {}) => onCommand(c, params);
+  
+  // Convert values to display format
+  const gainIdx = state.masterGain ?? 0;
+  const ndIdx = state.ndFilter ?? 0;
+  const ccIdx = 0;
+  const whiteR = ((state.whiteR ?? 128) - 128) / 2.56; // -50 to +50 range
+  const whiteG = ((state.whiteG ?? 128) - 128) / 2.56;
+  const whiteB = ((state.whiteB ?? 128) - 128) / 2.56;
+  const blackR = ((state.blackR ?? 128) - 128) / 25.6; // -5 to +5 range
+  const blackG = ((state.blackG ?? 128) - 128) / 25.6;
+  const blackB = ((state.blackB ?? 128) - 128) / 25.6;
+  const masterBlack = ((state.masterBlack ?? 128) - 128) / 25.6;
+  const masterWhiteGain = 0; // placeholder
+  const detail = Math.round(((state.detailLevel ?? 128) - 128) / 12.8); // -10 to +10
+  const irisValue = ((state.iris ?? 128) / 255 * 16).toFixed(1); // F1.4 - F16
 
   return (
-    <div className={`sony-rcp ${disabled ? 'sony-rcp--disabled' : ''}`}>
-      {/* ═══════════ TOP: TALLY BAR ═══════════ */}
-      <TallyBar tally={tally} cameraId="CAM 1" onSetTally={onSetTally} />
-
-      {/* ═══════════ MAIN PANEL ═══════════ */}
-      <div className="sony-rcp__body">
-        
-        {/* ─── LEFT SECTION: EXPOSURE ─── */}
-        <section className="sony-rcp__section sony-rcp__section--exposure">
-          <div className="sony-rcp__section-header">EXPOSURE</div>
-          
-          <div className="sony-rcp__iris-group">
-            <RotaryKnob
-              label="IRIS"
-              value={state.iris ?? 128}
-              min={0}
-              max={255}
-              onChange={(v) => cmd('setIris', { value: v })}
-              disabled={disabled}
-              size="lg"
-              color="default"
-            />
-            <SonyFader
-              label="IRIS"
-              value={state.iris ?? 128}
-              onChange={(v) => cmd('setIris', { value: v })}
-              disabled={disabled}
-              vertical
-            />
-          </div>
-
-          <div className="sony-rcp__row">
-            <SonySelect
-              label="ND FILTER"
-              value={state.ndFilter ?? 0}
-              options={ND_OPTIONS}
-              onChange={(v) => cmd('setNdFilter', { value: v })}
-              disabled={disabled}
-            />
-          </div>
-
-          <div className="sony-rcp__row">
-            <SonySelect
-              label="GAIN"
-              value={state.masterGain ?? 0}
-              options={GAIN_OPTIONS}
-              onChange={(v) => cmd('setMasterGain', { value: v })}
-              disabled={disabled}
-            />
-          </div>
-
-          <div className="sony-rcp__row">
-            <SonySelect
-              label="SHUTTER"
-              value={state.shutterSpeed ?? 0}
-              options={SHUTTER_OPTIONS}
-              onChange={(v) => cmd('setShutterSpeed', { value: v })}
-              disabled={disabled}
-            />
-          </div>
-        </section>
-
-        {/* ─── CENTER SECTION: BLACK / WHITE BALANCE ─── */}
-        <section className="sony-rcp__section sony-rcp__section--paint">
-          
-          {/* BLACK BALANCE */}
-          <div className="sony-rcp__subsection">
-            <div className="sony-rcp__section-header">BLACK</div>
-            <div className="sony-rcp__knob-row">
-              <RotaryKnob
-                label="MASTER"
-                value={state.masterBlack ?? 128}
-                min={0}
-                max={255}
-                detent={128}
-                onChange={(v) => cmd('setMasterBlack', { value: v })}
-                disabled={disabled}
-                size="md"
-              />
-              <RotaryKnob
-                label="R"
-                value={state.blackR ?? 128}
-                min={0}
-                max={255}
-                detent={128}
-                onChange={(v) => cmd('setBlackBalance', { r: v, g: state.blackG ?? 128, b: state.blackB ?? 128 })}
-                disabled={disabled}
-                size="sm"
-                color="red"
-              />
-              <RotaryKnob
-                label="G"
-                value={state.blackG ?? 128}
-                min={0}
-                max={255}
-                detent={128}
-                onChange={(v) => cmd('setBlackBalance', { r: state.blackR ?? 128, g: v, b: state.blackB ?? 128 })}
-                disabled={disabled}
-                size="sm"
-                color="green"
-              />
-              <RotaryKnob
-                label="B"
-                value={state.blackB ?? 128}
-                min={0}
-                max={255}
-                detent={128}
-                onChange={(v) => cmd('setBlackBalance', { r: state.blackR ?? 128, g: state.blackG ?? 128, b: v })}
-                disabled={disabled}
-                size="sm"
-                color="blue"
-              />
-            </div>
-          </div>
-
-          {/* WHITE BALANCE */}
-          <div className="sony-rcp__subsection">
-            <div className="sony-rcp__section-header">WHITE</div>
-            <div className="sony-rcp__knob-row">
-              <RotaryKnob
-                label="R"
-                value={state.whiteR ?? 128}
-                min={0}
-                max={255}
-                detent={128}
-                onChange={(v) => cmd('setWhiteBalance', { r: v, g: state.whiteG ?? 128, b: state.whiteB ?? 128 })}
-                disabled={disabled}
-                size="md"
-                color="red"
-              />
-              <RotaryKnob
-                label="G"
-                value={state.whiteG ?? 128}
-                min={0}
-                max={255}
-                detent={128}
-                onChange={(v) => cmd('setWhiteBalance', { r: state.whiteR ?? 128, g: v, b: state.whiteB ?? 128 })}
-                disabled={disabled}
-                size="md"
-                color="green"
-              />
-              <RotaryKnob
-                label="B"
-                value={state.whiteB ?? 128}
-                min={0}
-                max={255}
-                detent={128}
-                onChange={(v) => cmd('setWhiteBalance', { r: state.whiteR ?? 128, g: state.whiteG ?? 128, b: v })}
-                disabled={disabled}
-                size="md"
-                color="blue"
-              />
-            </div>
-            <div className="sony-rcp__btn-row">
-              <SonyButton
-                label="AWB"
-                sublabel="A"
-                onClick={() => cmd('autoWhiteBalance', { preset: 'A' })}
-                disabled={disabled}
-                variant="yellow"
-              />
-              <SonyButton
-                label="AWB"
-                sublabel="B"
-                onClick={() => cmd('autoWhiteBalance', { preset: 'B' })}
-                disabled={disabled}
-                variant="yellow"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* ─── RIGHT SECTION: PICTURE ─── */}
-        <section className="sony-rcp__section sony-rcp__section--picture">
-          <div className="sony-rcp__section-header">PICTURE</div>
-
-          <div className="sony-rcp__knob-row">
-            <RotaryKnob
-              label="GAMMA"
-              value={state.masterGamma ?? 128}
-              min={0}
-              max={255}
-              detent={128}
-              onChange={(v) => cmd('setMasterGamma', { value: v })}
-              disabled={disabled}
-              size="md"
-            />
-            <RotaryKnob
-              label="SAT"
-              value={state.saturation ?? 128}
-              min={0}
-              max={255}
-              detent={128}
-              onChange={(v) => cmd('setSaturation', { value: v })}
-              disabled={disabled}
-              size="md"
-            />
-          </div>
-
-          <div className="sony-rcp__knob-row">
-            <RotaryKnob
-              label="DETAIL"
-              value={state.detailLevel ?? 128}
-              min={0}
-              max={255}
-              detent={128}
-              onChange={(v) => cmd('setDetailLevel', { value: v })}
-              disabled={disabled}
-              size="md"
-            />
-            <RotaryKnob
-              label="KNEE"
-              value={128}
-              min={0}
-              max={255}
-              detent={128}
-              onChange={() => {}}
-              disabled={disabled}
-              size="md"
-            />
-          </div>
-        </section>
+    <div className={`rcp-panel ${disabled ? 'rcp-panel--disabled' : ''}`}>
+      
+      {/* ═══════ TOP BAR ═══════ */}
+      <div className="rcp-topbar">
+        <div className="rcp-topbar__left">
+          <span className="rcp-tab rcp-tab--active">DATA</span>
+          <span className="rcp-tab">ALARM</span>
+        </div>
+        <div className="rcp-topbar__center">
+          <span className="rcp-camera-id">{String(1).padStart(2, '0')}</span>
+        </div>
+        <div className="rcp-topbar__right">
+          <RcpButton label="ACTIVE" active={tally.program} variant="green" onClick={() => onSetTally({ program: !tally.program })} />
+          <RcpButton label="CALL" onClick={() => cmd('call')} />
+        </div>
       </div>
 
-      {/* ═══════════ BOTTOM: SYSTEM CONTROLS ═══════════ */}
-      <div className="sony-rcp__footer">
-        <div className="sony-rcp__system-btns">
-          <SonyButton
-            label="BARS"
-            active={state.bars ?? false}
-            onClick={() => cmd('setBars', { on: !(state.bars ?? false) })}
-            disabled={disabled}
-            variant="yellow"
-          />
-          <SonyButton
-            label="POWER"
-            active={state.cameraPower ?? false}
-            onClick={() => cmd('setCameraPower', { on: !(state.cameraPower ?? false) })}
-            disabled={disabled}
-            variant="red"
-          />
-          <SonyButton
-            label="CALL"
-            onClick={() => {}}
-            disabled={disabled}
-            variant="green"
-          />
-          <SonyButton
-            label="SCENE"
-            sublabel="1"
-            onClick={() => {}}
-            disabled={disabled}
-          />
-          <SonyButton
-            label="SCENE"
-            sublabel="2"
-            onClick={() => {}}
-            disabled={disabled}
-          />
-        </div>
+      {/* ═══════ MODE ROW ═══════ */}
+      <div className="rcp-row rcp-row--mode">
+        <RcpButton label="STANDARD" active disabled={disabled} />
+      </div>
 
-        <div className="sony-rcp__logo">
-          <span className="sony-rcp__logo-text">SONY</span>
-          <span className="sony-rcp__model">RCP-1500</span>
+      {/* ═══════ FUNCTION BUTTONS ═══════ */}
+      <div className="rcp-row rcp-row--functions">
+        <RcpButton label="BARS" active={state.bars} onClick={() => cmd('setBars', { on: !(state.bars ?? false) })} disabled={disabled} />
+        <RcpButton label="CLOSE" onClick={() => cmd('close')} disabled={disabled} />
+        <RcpButton label="D5600K" onClick={() => cmd('setColorTemp', { value: 5600 })} disabled={disabled} />
+        <RcpButton label="CHARACTER" onClick={() => cmd('toggleCharacter')} disabled={disabled} />
+      </div>
+
+      {/* ═══════ GAIN ROW ═══════ */}
+      <div className="rcp-row rcp-row--gain">
+        <Selector 
+          value={GAIN_VALUES[gainIdx] ?? '0dB'} 
+          label="MASTER GAIN"
+          onChange={(d) => cmd('setMasterGain', { value: Math.max(0, Math.min(6, gainIdx + d)) })}
+          disabled={disabled}
+        />
+        <div className="rcp-row__spacer" />
+        <RcpButton label="AWB" onClick={() => cmd('autoWhiteBalance', { preset: 'A' })} disabled={disabled} />
+        <RcpButton label="ABB" onClick={() => cmd('autoBlackBalance')} disabled={disabled} />
+      </div>
+
+      {/* ═══════ WHITE SECTION ═══════ */}
+      <div className="rcp-section rcp-section--white">
+        <div className="rcp-section__header">
+          <span className="rcp-section__label">ATW</span>
+        </div>
+        <div className="rcp-section__row">
+          <div className="rcp-rgb-group">
+            <ValueBox 
+              value={Math.round(whiteR)} 
+              color="red"
+              onChange={(d) => cmd('setWhiteBalance', { 
+                r: Math.max(0, Math.min(255, (state.whiteR ?? 128) + d * 2.56)),
+                g: state.whiteG ?? 128,
+                b: state.whiteB ?? 128
+              })}
+              disabled={disabled}
+            />
+            <ValueBox 
+              value={Math.round(whiteG)} 
+              color="green"
+              onChange={(d) => cmd('setWhiteBalance', { 
+                r: state.whiteR ?? 128,
+                g: Math.max(0, Math.min(255, (state.whiteG ?? 128) + d * 2.56)),
+                b: state.whiteB ?? 128
+              })}
+              disabled={disabled}
+            />
+            <ValueBox 
+              value={Math.round(whiteB)} 
+              color="blue"
+              onChange={(d) => cmd('setWhiteBalance', { 
+                r: state.whiteR ?? 128,
+                g: state.whiteG ?? 128,
+                b: Math.max(0, Math.min(255, (state.whiteB ?? 128) + d * 2.56))
+              })}
+              disabled={disabled}
+            />
+          </div>
+          <span className="rcp-section__divider-label">WHITE</span>
+        </div>
+        <div className="rcp-section__sidebar">
+          <div className="rcp-value-display">
+            <span className="rcp-value-display__value">{detail}</span>
+            <span className="rcp-value-display__label">DETAIL</span>
+          </div>
+          <div className="rcp-value-display">
+            <span className="rcp-value-display__value">{masterWhiteGain.toFixed(1)}dB</span>
+            <span className="rcp-value-display__label">MASTER<br/>WHITE GAIN</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════ BLACK SECTION ═══════ */}
+      <div className="rcp-section rcp-section--black">
+        <div className="rcp-section__row">
+          <div className="rcp-rgb-group">
+            <ValueBox 
+              value={Math.round(blackR)} 
+              color="red"
+              onChange={(d) => cmd('setBlackBalance', { 
+                r: Math.max(0, Math.min(255, (state.blackR ?? 128) + d * 25.6)),
+                g: state.blackG ?? 128,
+                b: state.blackB ?? 128
+              })}
+              disabled={disabled}
+            />
+            <ValueBox 
+              value={Math.round(blackG)} 
+              color="green"
+              onChange={(d) => cmd('setBlackBalance', { 
+                r: state.blackR ?? 128,
+                g: Math.max(0, Math.min(255, (state.blackG ?? 128) + d * 25.6)),
+                b: state.blackB ?? 128
+              })}
+              disabled={disabled}
+            />
+            <ValueBox 
+              value={Math.round(blackB)} 
+              color="blue"
+              onChange={(d) => cmd('setBlackBalance', { 
+                r: state.blackR ?? 128,
+                g: state.blackG ?? 128,
+                b: Math.max(0, Math.min(255, (state.blackB ?? 128) + d * 25.6))
+              })}
+              disabled={disabled}
+            />
+          </div>
+          <span className="rcp-section__divider-label">BLACK</span>
+        </div>
+        <div className="rcp-section__sidebar">
+          <div className="rcp-value-display">
+            <span className="rcp-value-display__value">{masterBlack.toFixed(1)}</span>
+            <span className="rcp-value-display__label">MASTER BLACK</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════ IRIS SECTION ═══════ */}
+      <div className="rcp-section rcp-section--iris">
+        <div className="rcp-iris-left">
+          <label className="rcp-checkbox">
+            <input 
+              type="checkbox" 
+              checked={autoIris}
+              onChange={(e) => {
+                setAutoIris(e.target.checked);
+                cmd('setAutoIris', { on: e.target.checked });
+              }}
+              disabled={disabled}
+            />
+            <span className="rcp-checkbox__label">AUTO IRIS</span>
+          </label>
+          <div className="rcp-filter-group">
+            <Selector 
+              value={ND_VALUES[ndIdx] ?? '1'} 
+              label="ND"
+              onChange={(d) => cmd('setNdFilter', { value: Math.max(0, Math.min(3, ndIdx + d)) })}
+              disabled={disabled}
+            />
+            <Selector 
+              value={CC_VALUES[ccIdx] ?? 'A'} 
+              label="CC"
+              onChange={() => {}}
+              disabled={disabled}
+            />
+          </div>
+        </div>
+        <div className="rcp-iris-center">
+          <div className="rcp-iris-display">
+            <span className="rcp-iris-display__value">{irisValue}</span>
+            <span className="rcp-iris-display__label">IRIS</span>
+          </div>
+        </div>
+        <div className="rcp-iris-right">
+          <div className="rcp-fader">
+            <div className="rcp-fader__scale">
+              <span>3.4</span>
+            </div>
+            <div className="rcp-fader__track">
+              <input 
+                type="range" 
+                min="0" 
+                max="255" 
+                value={state.iris ?? 128}
+                onChange={(e) => cmd('setIris', { value: parseInt(e.target.value) })}
+                disabled={disabled || autoIris}
+                className="rcp-fader__input"
+              />
+              <div 
+                className="rcp-fader__handle"
+                style={{ bottom: `${((state.iris ?? 128) / 255) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════ BOTTOM BAR ═══════ */}
+      <div className="rcp-bottombar">
+        <RcpButton label="PREVIEW" active={tally.preview} onClick={() => onSetTally({ preview: !tally.preview })} />
+        <div className="rcp-status-indicators">
+          <span className="rcp-status rcp-status--out">OUT</span>
+          <span className="rcp-status rcp-status--opt">OPT</span>
+          <span className="rcp-status rcp-status--sync">SYNC</span>
+          <span className="rcp-status rcp-status--drop">DROP</span>
         </div>
       </div>
     </div>
