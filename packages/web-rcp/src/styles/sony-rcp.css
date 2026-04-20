@@ -1150,3 +1150,201 @@
 .camera-card__status--disconnected {
   color: #666;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BLACKMAGIC PANEL STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.rcp-panel--blackmagic {
+  --rcp-accent: #ff5722;
+}
+
+.rcp-topbar--blackmagic {
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  border-bottom: 2px solid #ff5722;
+}
+
+.rcp-brand {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #ff5722;
+}
+
+.rcp-camera-id--bm {
+  background: #ff5722;
+  color: #fff;
+}
+
+.rcp-row--info {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding: 4px 8px;
+  background: #111;
+  border-bottom: 1px solid #333;
+}
+
+.rcp-info-item {
+  font-size: 10px;
+  font-weight: 600;
+  color: #666;
+}
+
+.rcp-row--wb {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  background: #1a1a1a;
+  gap: 8px;
+}
+
+.rcp-wb-display,
+.rcp-wb-tint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+
+.rcp-wb-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.rcp-wb-label {
+  font-size: 8px;
+  color: #666;
+  text-transform: uppercase;
+}
+
+.rcp-wb-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.rcp-section__hint {
+  font-size: 9px;
+  font-style: italic;
+  color: #555;
+}
+
+.rcp-section--contrast {
+  padding: 8px;
+  background: #1a1a1a;
+}
+
+.rcp-contrast-group {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+
+.rcp-slider--iris {
+  flex: 1;
+  accent-color: var(--rcp-blue);
+}
+
+.rcp-status-text {
+  font-size: 9px;
+  color: #444;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DRAGGABLE GRID LAYOUT
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.dashboard__main--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px;
+  align-content: start;
+}
+
+.dashboard__rcp-wrapper {
+  position: relative;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.dashboard__rcp-wrapper:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard__rcp-wrapper--dragging {
+  opacity: 0.6;
+  transform: scale(0.98);
+}
+
+.dashboard__rcp-wrapper--sony {
+  border-left: 3px solid var(--rcp-blue);
+}
+
+.dashboard__rcp-wrapper--blackmagic {
+  border-left: 3px solid #ff5722;
+}
+
+.dashboard__rcp-drag-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 100%);
+  color: #666;
+  font-size: 16px;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+
+.dashboard__rcp-drag-handle:active {
+  cursor: grabbing;
+}
+
+.dashboard__rcp-wrapper:hover .dashboard__rcp-drag-handle {
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADD CAMERA BUTTONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.rcp-btn--sony {
+  background: var(--rcp-blue);
+  color: #fff;
+}
+
+.rcp-btn--sony:hover {
+  background: #0099ff;
+}
+
+.rcp-btn--blackmagic {
+  background: #ff5722;
+  color: #fff;
+}
+
+.rcp-btn--blackmagic:hover {
+  background: #ff6d3d;
+}
+
+.add-camera-btn--sony {
+  border-left: 3px solid var(--rcp-blue);
+}
+
+.add-camera-btn--blackmagic {
+  border-left: 3px solid #ff5722;
+}
+
+.dashboard__sidebar .add-camera-btn {
+  margin-top: 4px;
+}
+
+.dashboard__sidebar .add-camera-btn + .add-camera-btn {
+  margin-top: 4px;
+}

@@ -8,6 +8,8 @@
   "scripts": {
     "bridge": "npm run dev --workspace=packages/bridge",
     "web": "npm run dev --workspace=packages/web-rcp",
-    "dev": "npm run bridge & npm run web"
+    "dev": "npm run bridge & npm run web",
+    "companion-module": "npm run build --workspace=packages/companion-module-sony-camera-bridge",
+    "companion-module:dev": "npm run dev --workspace=packages/companion-module-sony-camera-bridge"
   }
 }

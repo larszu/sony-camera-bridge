@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { SonyRcpPanel } from './SonyRcpPanel.tsx';
+import { BlackmagicRcpPanel } from './BlackmagicRcpPanel.tsx';
 import { CameraConfigPanel } from './CameraConfigPanel.tsx';
-import type { CameraConnection, CameraProtocol, TallyState, CameraState, DashboardState } from '../types.ts';
+import type { CameraConnection, CameraProtocol, TallyState, CameraState, DashboardState, CameraType } from '../types.ts';
 
 // Generate unique ID
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -34,16 +35,16 @@ const defaultTallyState: TallyState = {
 };
 
 // Create a new camera connection
-function createCamera(cameraNumber: number): CameraConnection {
+function createCamera(cameraNumber: number, type: 'sony' | 'blackmagic' = 'sony'): CameraConnection {
   return {
     id: generateId(),
-    name: `Camera ${cameraNumber}`,
+    name: `${type === 'blackmagic' ? 'BM' : 'Sony'} Camera ${cameraNumber}`,
     cameraNumber,
-    protocol: 'sony-700ptp',
-    status: 'disconnected',
+    protocol: type === 'blackmagic' ? 'blackmagic-rest' : 'sony-700ptp',
+    status: 'connected', // Default to connected for demo
     settings: {
-      host: '192.168.1.100',
-      port: 7700,
+      host: type === 'blackmagic' ? 'Pocket-Cinema-Camera-4K.local' : '192.168.1.100',
+      port: type === 'blackmagic' ? 80 : 7700,
     },
     state: { ...defaultCameraState },
     tally: { ...defaultTallyState },
@@ -67,18 +68,34 @@ export function Dashboard({ onSendCommand }: DashboardProps) {
   }));
 
   const [showConfig, setShowConfig] = useState<string | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
 
-  // Add a new camera
-  const addCamera = useCallback(() => {
+  // Add a new Sony camera
+  const addSonyCamera = useCallback(() => {
     setState(prev => {
       const nextNumber = prev.cameras.length + 1;
-      const newCamera = createCamera(nextNumber);
+      const newCamera = createCamera(nextNumber, 'sony');
       return {
         ...prev,
         cameras: [...prev.cameras, newCamera],
       };
     });
   }, []);
+
+  // Add a new Blackmagic camera
+  const addBlackmagicCamera = useCallback(() => {
+    setState(prev => {
+      const nextNumber = prev.cameras.length + 1;
+      const newCamera = createCamera(nextNumber, 'blackmagic');
+      return {
+        ...prev,
+        cameras: [...prev.cameras, newCamera],
+      };
+    });
+  }, []);
+
+  // Legacy addCamera for compatibility
+  const addCamera = addSonyCamera;
 
   // Remove a camera
   const removeCamera = useCallback((id: string) => {
@@ -189,17 +206,60 @@ export function Dashboard({ onSendCommand }: DashboardProps) {
     }, 1000);
   }, []);
 
+  // Drag and drop handlers for reordering
+  const handleDragStart = useCallback((e: React.DragEvent, cameraId: string) => {
+    setDraggedId(cameraId);
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedId || draggedId === targetId) return;
+
+    setState(prev => {
+      const cameras = [...prev.cameras];
+      const draggedIndex = cameras.findIndex(c => c.id === draggedId);
+      const targetIndex = cameras.findIndex(c => c.id === targetId);
+      
+      if (draggedIndex === -1 || targetIndex === -1) return prev;
+      
+      // Swap positions
+      const [draggedCamera] = cameras.splice(draggedIndex, 1);
+      cameras.splice(targetIndex, 0, draggedCamera);
+      
+      return { ...prev, cameras };
+    });
+    
+    setDraggedId(null);
+  }, [draggedId]);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedId(null);
+  }, []);
+
+  // Check if camera is Blackmagic type
+  const isBlackmagicCamera = (camera: CameraConnection) => 
+    camera.protocol === 'blackmagic-rest' || camera.protocol === 'blackmagic-sdi';
+
   return (
     <div className="dashboard">
       {/* Header */}
       <div className="dashboard__header">
         <div className="dashboard__title">
           <span>📹</span>
-          <span>Camera Control Dashboard</span>
+          <span>Multi-Camera RCP Dashboard</span>
         </div>
         <div className="dashboard__actions">
-          <button className="rcp-btn" onClick={addCamera}>
-            + Add Camera
+          <button className="rcp-btn rcp-btn--sony" onClick={addSonyCamera}>
+            + Sony Camera
+          </button>
+          <button className="rcp-btn rcp-btn--blackmagic" onClick={addBlackmagicCamera}>
+            + Blackmagic Camera
           </button>
         </div>
       </div>
@@ -247,24 +307,53 @@ export function Dashboard({ onSendCommand }: DashboardProps) {
               </div>
             ))}
           </div>
-          <button className="add-camera-btn" onClick={addCamera}>
+          <button className="add-camera-btn add-camera-btn--sony" onClick={addSonyCamera}>
             <span>+</span>
-            <span>Add Camera</span>
+            <span>Add Sony Camera</span>
+          </button>
+          <button className="add-camera-btn add-camera-btn--blackmagic" onClick={addBlackmagicCamera}>
+            <span>+</span>
+            <span>Add Blackmagic Camera</span>
           </button>
         </div>
 
-        {/* Main Area - RCP Panels */}
-        <div className="dashboard__main">
+        {/* Main Area - RCP Panels (Draggable Grid) */}
+        <div className="dashboard__main dashboard__main--grid">
           {state.cameras.map(camera => (
-            <div key={camera.id} className="dashboard__rcp-wrapper">
-              <SonyRcpPanel
-                state={camera.state}
-                tally={camera.tally}
-                cameraId={camera.cameraNumber}
-                disabled={camera.status !== 'connected'}
-                onCommand={(cmd, params) => handleCommand(camera.id, cmd, params)}
-                onSetTally={(tally) => handleSetTally(camera.id, tally)}
-              />
+            <div 
+              key={camera.id} 
+              className={`dashboard__rcp-wrapper ${draggedId === camera.id ? 'dashboard__rcp-wrapper--dragging' : ''} ${isBlackmagicCamera(camera) ? 'dashboard__rcp-wrapper--blackmagic' : 'dashboard__rcp-wrapper--sony'}`}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, camera.id)}
+            >
+              <div 
+                className="dashboard__rcp-drag-handle" 
+                title="Drag to reorder"
+                draggable
+                onDragStart={(e) => handleDragStart(e, camera.id)}
+                onDragEnd={handleDragEnd}
+              >
+                ⋮⋮
+              </div>
+              {isBlackmagicCamera(camera) ? (
+                <BlackmagicRcpPanel
+                  state={camera.state}
+                  tally={camera.tally}
+                  cameraId={camera.cameraNumber}
+                  disabled={false}
+                  onCommand={(cmd, params) => handleCommand(camera.id, cmd, params)}
+                  onSetTally={(tally) => handleSetTally(camera.id, tally)}
+                />
+              ) : (
+                <SonyRcpPanel
+                  state={camera.state}
+                  tally={camera.tally}
+                  cameraId={camera.cameraNumber}
+                  disabled={false}
+                  onCommand={(cmd, params) => handleCommand(camera.id, cmd, params)}
+                  onSetTally={(tally) => handleSetTally(camera.id, tally)}
+                />
+              )}
               <div className="dashboard__rcp-footer">
                 <span className="dashboard__rcp-name">{camera.name}</span>
                 <button

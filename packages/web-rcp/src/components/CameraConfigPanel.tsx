@@ -30,9 +30,14 @@ const PROTOCOLS: { value: CameraProtocol; label: string; description: string }[]
     description: 'WiFi protocol for supported cameras' 
   },
   { 
+    value: 'blackmagic-rest', 
+    label: 'Blackmagic REST API', 
+    description: 'Ethernet/WiFi control via REST API - BMPCC, Studio Camera' 
+  },
+  { 
     value: 'blackmagic-sdi', 
     label: 'Blackmagic SDI Control', 
-    description: 'Blackmagic camera control over SDI' 
+    description: 'Camera control via SDI through ATEM switcher' 
   },
   { 
     value: 'manual', 

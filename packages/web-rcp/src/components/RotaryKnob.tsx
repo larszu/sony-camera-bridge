@@ -13,6 +13,7 @@ interface RotaryKnobProps {
   showValue?: boolean;
   detent?: number; // Center detent position
   editable?: boolean; // Allow clicking to edit value
+  displayValue?: string; // Custom display value override
 }
 
 /**
@@ -32,6 +33,7 @@ export function RotaryKnob({
   showValue = true,
   detent,
   editable = false,
+  displayValue: displayValueProp,
 }: RotaryKnobProps) {
   const knobRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -111,7 +113,7 @@ export function RotaryKnob({
   }, [disabled, detent, min, max, onChange]);
 
   // Format display value
-  const displayValue = (() => {
+  const displayValue = displayValueProp ?? (() => {
     if (detent !== undefined) {
       const delta = value - detent;
       if (delta === 0) return '0';

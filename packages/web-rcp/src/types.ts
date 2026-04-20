@@ -54,8 +54,11 @@ export type CameraProtocol =
   | 'sony-700spp'      // Sony 700 Protocol over Serial/RS-422
   | 'sony-crsdk'       // Sony Camera Remote SDK (USB/WiFi) - FX3, FX6, A7 etc.
   | 'sony-mnc'         // Sony Monitor & Control App Protocol (WiFi)
-  | 'blackmagic-sdi'   // Blackmagic SDI Camera Control
+  | 'blackmagic-rest'  // Blackmagic REST API (Ethernet/WiFi)
+  | 'blackmagic-sdi'   // Blackmagic SDI Camera Control (via ATEM)
   | 'manual';          // Manual/demo mode
+
+export type CameraType = 'sony' | 'blackmagic';
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
