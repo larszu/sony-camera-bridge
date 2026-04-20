@@ -12,6 +12,7 @@ interface RotaryKnobProps {
   color?: 'default' | 'red' | 'green' | 'blue' | 'yellow';
   showValue?: boolean;
   detent?: number; // Center detent position
+  editable?: boolean; // Allow clicking to edit value
 }
 
 /**
@@ -30,9 +31,13 @@ export function RotaryKnob({
   color = 'default',
   showValue = true,
   detent,
+  editable = false,
 }: RotaryKnobProps) {
   const knobRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
   const dragStartY = useRef(0);
   const dragStartValue = useRef(0);
 
@@ -115,6 +120,47 @@ export function RotaryKnob({
     return `${value}${unit}`;
   })();
 
+  // Handle click on value to edit
+  const handleValueClick = useCallback(() => {
+    if (disabled || !editable) return;
+    setIsEditing(true);
+    if (detent !== undefined) {
+      setEditValue(String(value - detent));
+    } else {
+      setEditValue(String(value));
+    }
+    setTimeout(() => inputRef.current?.select(), 0);
+  }, [disabled, editable, value, detent]);
+
+  // Handle edit input change
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditValue(e.target.value);
+  };
+
+  // Handle edit submit
+  const handleEditSubmit = () => {
+    const parsed = parseInt(editValue, 10);
+    if (!isNaN(parsed)) {
+      let newValue: number;
+      if (detent !== undefined) {
+        newValue = detent + parsed;
+      } else {
+        newValue = parsed;
+      }
+      onChange(Math.max(min, Math.min(max, newValue)));
+    }
+    setIsEditing(false);
+  };
+
+  // Handle edit key events
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleEditSubmit();
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+    }
+  };
+
   return (
     <div
       className={`rotary-knob ${sizeClass} rotary-knob--${color} ${disabled ? 'rotary-knob--disabled' : ''} ${isDragging ? 'rotary-knob--dragging' : ''}`}
@@ -153,7 +199,27 @@ export function RotaryKnob({
         {/* Center dot */}
         <div className="rotary-knob__center" />
       </div>
-      {showValue && <div className="rotary-knob__value">{displayValue}</div>}
+      {showValue && (
+        isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            className="rotary-knob__input"
+            value={editValue}
+            onChange={handleEditChange}
+            onBlur={handleEditSubmit}
+            onKeyDown={handleEditKeyDown}
+            autoFocus
+          />
+        ) : (
+          <div 
+            className={`rotary-knob__value ${editable ? 'rotary-knob__value--editable' : ''}`}
+            onClick={handleValueClick}
+          >
+            {displayValue}
+          </div>
+        )
+      )}
     </div>
   );
 }

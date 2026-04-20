@@ -1,13 +1,18 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useBridge } from './hooks/useBridge.ts';
 import { ConnectionPanel } from './components/ConnectionPanel.tsx';
 import { SonyRcpPanel } from './components/SonyRcpPanel.tsx';
 import { WiznetPanel } from './components/WiznetPanel.tsx';
+import { Dashboard } from './components/Dashboard.tsx';
 import type { WiznetDevice } from './types.ts';
 import type { TallyState } from './components/TallyBar.tsx';
 import './styles/sony-rcp.css';
 
+type AppMode = 'single' | 'dashboard';
+
 export default function App() {
+  const [mode, setMode] = useState<AppMode>('dashboard');
+  
   const {
     status,
     cameraConnected,
@@ -53,8 +58,34 @@ export default function App() {
     [setTally],
   );
 
+  // Dashboard mode - multi-camera RCP panels
+  if (mode === 'dashboard') {
+    return (
+      <div className="app">
+        <header className="app__header">
+          <button 
+            className="rcp-btn rcp-btn--secondary"
+            onClick={() => setMode('single')}
+          >
+            Single Camera Mode
+          </button>
+        </header>
+        <Dashboard />
+      </div>
+    );
+  }
+
+  // Single camera mode - legacy layout
   return (
     <div className="app">
+      <header className="app__header">
+        <button 
+          className="rcp-btn rcp-btn--primary"
+          onClick={() => setMode('dashboard')}
+        >
+          Multi-Camera Dashboard
+        </button>
+      </header>
       <main className="app__main app__main--rcp">
         <aside className="app__sidebar">
           <ConnectionPanel

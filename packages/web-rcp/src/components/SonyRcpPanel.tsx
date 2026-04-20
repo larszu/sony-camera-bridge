@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { TallyState } from './TallyBar.tsx';
+import { RotaryKnob } from './RotaryKnob.tsx';
 import type { CameraState } from '../types.ts';
 
 interface SonyRcpPanelProps {
   state: CameraState;
   tally: TallyState;
+  cameraId?: number;
   disabled?: boolean;
   onCommand: (cmd: string, params: Record<string, unknown>) => void;
   onSetTally: (tally: Partial<TallyState>) => void;
@@ -80,7 +82,7 @@ function RcpButton({ label, active, variant, onClick, disabled }: {
 /**
  * Software-style RCP Panel
  */
-export function SonyRcpPanel({ state, tally, disabled = false, onCommand, onSetTally }: SonyRcpPanelProps) {
+export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onCommand, onSetTally }: SonyRcpPanelProps) {
   const [autoIris, setAutoIris] = useState(false);
   const cmd = (c: string, params: Record<string, unknown> = {}) => onCommand(c, params);
   
@@ -88,14 +90,6 @@ export function SonyRcpPanel({ state, tally, disabled = false, onCommand, onSetT
   const gainIdx = state.masterGain ?? 0;
   const ndIdx = state.ndFilter ?? 0;
   const ccIdx = 0;
-  const whiteR = ((state.whiteR ?? 128) - 128) / 2.56; // -50 to +50 range
-  const whiteG = ((state.whiteG ?? 128) - 128) / 2.56;
-  const whiteB = ((state.whiteB ?? 128) - 128) / 2.56;
-  const blackR = ((state.blackR ?? 128) - 128) / 25.6; // -5 to +5 range
-  const blackG = ((state.blackG ?? 128) - 128) / 25.6;
-  const blackB = ((state.blackB ?? 128) - 128) / 25.6;
-  const masterBlack = ((state.masterBlack ?? 128) - 128) / 25.6;
-  const masterWhiteGain = 0; // placeholder
   const detail = Math.round(((state.detailLevel ?? 128) - 128) / 12.8); // -10 to +10
   const irisValue = ((state.iris ?? 128) / 255 * 16).toFixed(1); // F1.4 - F16
 
@@ -109,7 +103,7 @@ export function SonyRcpPanel({ state, tally, disabled = false, onCommand, onSetT
           <span className="rcp-tab">ALARM</span>
         </div>
         <div className="rcp-topbar__center">
-          <span className="rcp-camera-id">{String(1).padStart(2, '0')}</span>
+          <span className="rcp-camera-id">{String(cameraId).padStart(2, '0')}</span>
         </div>
         <div className="rcp-topbar__right">
           <RcpButton label="ACTIVE" active={tally.program} variant="green" onClick={() => onSetTally({ program: !tally.program })} />
@@ -143,100 +137,105 @@ export function SonyRcpPanel({ state, tally, disabled = false, onCommand, onSetT
         <RcpButton label="ABB" onClick={() => cmd('autoBlackBalance')} disabled={disabled} />
       </div>
 
-      {/* ═══════ WHITE SECTION ═══════ */}
-      <div className="rcp-section rcp-section--white">
+      {/* ═══════ WHITE SECTION with Rotary Knobs ═══════ */}
+      <div className="rcp-section rcp-section--knobs">
         <div className="rcp-section__header">
+          <span className="rcp-section__label">WHITE</span>
           <span className="rcp-section__label">ATW</span>
         </div>
-        <div className="rcp-section__row">
-          <div className="rcp-rgb-group">
-            <ValueBox 
-              value={Math.round(whiteR)} 
-              color="red"
-              onChange={(d) => cmd('setWhiteBalance', { 
-                r: Math.max(0, Math.min(255, (state.whiteR ?? 128) + d * 2.56)),
-                g: state.whiteG ?? 128,
-                b: state.whiteB ?? 128
-              })}
-              disabled={disabled}
-            />
-            <ValueBox 
-              value={Math.round(whiteG)} 
-              color="green"
-              onChange={(d) => cmd('setWhiteBalance', { 
-                r: state.whiteR ?? 128,
-                g: Math.max(0, Math.min(255, (state.whiteG ?? 128) + d * 2.56)),
-                b: state.whiteB ?? 128
-              })}
-              disabled={disabled}
-            />
-            <ValueBox 
-              value={Math.round(whiteB)} 
-              color="blue"
-              onChange={(d) => cmd('setWhiteBalance', { 
-                r: state.whiteR ?? 128,
-                g: state.whiteG ?? 128,
-                b: Math.max(0, Math.min(255, (state.whiteB ?? 128) + d * 2.56))
-              })}
-              disabled={disabled}
-            />
-          </div>
-          <span className="rcp-section__divider-label">WHITE</span>
-        </div>
-        <div className="rcp-section__sidebar">
-          <div className="rcp-value-display">
-            <span className="rcp-value-display__value">{detail}</span>
-            <span className="rcp-value-display__label">DETAIL</span>
-          </div>
-          <div className="rcp-value-display">
-            <span className="rcp-value-display__value">{masterWhiteGain.toFixed(1)}dB</span>
-            <span className="rcp-value-display__label">MASTER<br/>WHITE GAIN</span>
-          </div>
+        <div className="rcp-knob-row">
+          <RotaryKnob
+            label="R"
+            value={state.whiteR ?? 128}
+            min={0}
+            max={255}
+            detent={128}
+            onChange={(v) => cmd('setWhiteBalance', { r: v, g: state.whiteG ?? 128, b: state.whiteB ?? 128 })}
+            disabled={disabled}
+            size="md"
+            color="red"
+            editable
+          />
+          <RotaryKnob
+            label="G"
+            value={state.whiteG ?? 128}
+            min={0}
+            max={255}
+            detent={128}
+            onChange={(v) => cmd('setWhiteBalance', { r: state.whiteR ?? 128, g: v, b: state.whiteB ?? 128 })}
+            disabled={disabled}
+            size="md"
+            color="green"
+            editable
+          />
+          <RotaryKnob
+            label="B"
+            value={state.whiteB ?? 128}
+            min={0}
+            max={255}
+            detent={128}
+            onChange={(v) => cmd('setWhiteBalance', { r: state.whiteR ?? 128, g: state.whiteG ?? 128, b: v })}
+            disabled={disabled}
+            size="md"
+            color="blue"
+            editable
+          />
         </div>
       </div>
 
-      {/* ═══════ BLACK SECTION ═══════ */}
-      <div className="rcp-section rcp-section--black">
-        <div className="rcp-section__row">
-          <div className="rcp-rgb-group">
-            <ValueBox 
-              value={Math.round(blackR)} 
-              color="red"
-              onChange={(d) => cmd('setBlackBalance', { 
-                r: Math.max(0, Math.min(255, (state.blackR ?? 128) + d * 25.6)),
-                g: state.blackG ?? 128,
-                b: state.blackB ?? 128
-              })}
-              disabled={disabled}
-            />
-            <ValueBox 
-              value={Math.round(blackG)} 
-              color="green"
-              onChange={(d) => cmd('setBlackBalance', { 
-                r: state.blackR ?? 128,
-                g: Math.max(0, Math.min(255, (state.blackG ?? 128) + d * 25.6)),
-                b: state.blackB ?? 128
-              })}
-              disabled={disabled}
-            />
-            <ValueBox 
-              value={Math.round(blackB)} 
-              color="blue"
-              onChange={(d) => cmd('setBlackBalance', { 
-                r: state.blackR ?? 128,
-                g: state.blackG ?? 128,
-                b: Math.max(0, Math.min(255, (state.blackB ?? 128) + d * 25.6))
-              })}
-              disabled={disabled}
-            />
-          </div>
-          <span className="rcp-section__divider-label">BLACK</span>
+      {/* ═══════ BLACK SECTION with Rotary Knobs ═══════ */}
+      <div className="rcp-section rcp-section--knobs">
+        <div className="rcp-section__header">
+          <span className="rcp-section__label">BLACK</span>
         </div>
-        <div className="rcp-section__sidebar">
-          <div className="rcp-value-display">
-            <span className="rcp-value-display__value">{masterBlack.toFixed(1)}</span>
-            <span className="rcp-value-display__label">MASTER BLACK</span>
-          </div>
+        <div className="rcp-knob-row">
+          <RotaryKnob
+            label="MASTER"
+            value={state.masterBlack ?? 128}
+            min={0}
+            max={255}
+            detent={128}
+            onChange={(v) => cmd('setMasterBlack', { value: v })}
+            disabled={disabled}
+            size="md"
+            editable
+          />
+          <RotaryKnob
+            label="R"
+            value={state.blackR ?? 128}
+            min={0}
+            max={255}
+            detent={128}
+            onChange={(v) => cmd('setBlackBalance', { r: v, g: state.blackG ?? 128, b: state.blackB ?? 128 })}
+            disabled={disabled}
+            size="sm"
+            color="red"
+            editable
+          />
+          <RotaryKnob
+            label="G"
+            value={state.blackG ?? 128}
+            min={0}
+            max={255}
+            detent={128}
+            onChange={(v) => cmd('setBlackBalance', { r: state.blackR ?? 128, g: v, b: state.blackB ?? 128 })}
+            disabled={disabled}
+            size="sm"
+            color="green"
+            editable
+          />
+          <RotaryKnob
+            label="B"
+            value={state.blackB ?? 128}
+            min={0}
+            max={255}
+            detent={128}
+            onChange={(v) => cmd('setBlackBalance', { r: state.blackR ?? 128, g: state.blackG ?? 128, b: v })}
+            disabled={disabled}
+            size="sm"
+            color="blue"
+            editable
+          />
         </div>
       </div>
 
