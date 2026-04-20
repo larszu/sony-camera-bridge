@@ -19,6 +19,7 @@ import { createServer, IncomingMessage } from 'http';
 import { Rs422Transport } from './transport/Rs422Transport.js';
 import { CcuClient, CameraState } from './protocol/CcuClient.js';
 import { WiznetDiscovery, WiznetDevice, WiznetDeviceConfig } from './discovery/WiznetDiscovery.js';
+import { CompanionServer, TallyState } from './companion/CompanionServer.js';
 
 export interface BridgeConfig {
   /** Connection mode: 'tcp' or 'serial' */
@@ -35,12 +36,13 @@ export interface BridgeConfig {
 }
 
 interface ClientMessage {
-  type: 'command' | 'connect' | 'disconnect' | 'listPorts' | 'getConfig' | 'setConfig' | 'discoverWiznet' | 'configureWiznet';
+  type: 'command' | 'connect' | 'disconnect' | 'listPorts' | 'getConfig' | 'setConfig' | 'discoverWiznet' | 'configureWiznet' | 'setTally' | 'getTally';
   cmd?: string;
   params?: Record<string, unknown>;
   config?: BridgeConfig;
   deviceIp?: string;
   deviceConfig?: WiznetDeviceConfig;
+  tally?: Partial<TallyState>;
 }
 
 export class BridgeServer {
@@ -49,6 +51,8 @@ export class BridgeServer {
   private ccuClient: CcuClient | null = null;
   private rs422: Rs422Transport | null = null;
   private wiznetDiscovery = new WiznetDiscovery();
+  private companion = new CompanionServer();
+  private tally: TallyState = { program: false, preview: false, isoRec: false };
   private config: BridgeConfig = {
     connectionMode: 'tcp',
     tcpHost: '192.168.1.10',
@@ -62,17 +66,30 @@ export class BridgeServer {
     this.httpServer = createServer();
     this.wss = new WebSocketServer({ server: this.httpServer });
     this.wss.on('connection', (ws) => this.onClient(ws));
+
+    // Wire Companion commands to camera
+    this.companion.on('command', (cmd: { action: string; params?: Record<string, unknown> }) => {
+      this.handleCompanionCommand(cmd.action, cmd.params ?? {});
+    });
+
+    // Sync tally from Companion
+    this.companion.on('tallyChanged', (t: TallyState) => {
+      this.tally = t;
+      this.broadcast({ type: 'tally', tally: this.tally });
+    });
   }
 
   start(): void {
     this.httpServer.listen(this.wsPort, () => {
       console.log(`[BridgeServer] WebSocket listening on ws://localhost:${this.wsPort}`);
     });
+    this.companion.start();
   }
 
   stop(): void {
     this.ccuClient?.disconnect();
     this.rs422?.close();
+    this.companion.stop();
     this.wss.close();
     this.httpServer.close();
   }
@@ -84,6 +101,7 @@ export class BridgeServer {
 
     // Send current state immediately on connect
     ws.send(JSON.stringify({ type: 'config', config: this.config }));
+    ws.send(JSON.stringify({ type: 'tally', tally: this.tally }));
     if (this.ccuClient?.connected) {
       ws.send(JSON.stringify({ type: 'connected' }));
       ws.send(JSON.stringify({ type: 'state', state: this.ccuClient.state }));
@@ -158,6 +176,19 @@ export class BridgeServer {
         ws.send(JSON.stringify({ type: 'wiznetConfigResult', success: ok, ip: msg.deviceIp }));
         break;
       }
+
+      case 'setTally': {
+        if (msg.tally) {
+          this.tally = { ...this.tally, ...msg.tally };
+          this.companion.setTally(this.tally);
+          this.broadcast({ type: 'tally', tally: this.tally });
+        }
+        break;
+      }
+
+      case 'getTally':
+        ws.send(JSON.stringify({ type: 'tally', tally: this.tally }));
+        break;
     }
   }
 
@@ -205,14 +236,17 @@ export class BridgeServer {
     this.ccuClient.on('connected', (info) => {
       console.log('[BridgeServer] Camera connected:', info);
       this.broadcast({ type: 'connected', info });
+      this.companion.setConnected(true);
     });
 
     this.ccuClient.on('stateChanged', (state: CameraState) => {
       this.broadcast({ type: 'state', state });
+      this.companion.updateCameraState(state as Record<string, unknown>);
     });
 
     this.ccuClient.on('disconnected', () => {
       this.broadcast({ type: 'disconnected' });
+      this.companion.setConnected(false);
     });
 
     this.ccuClient.on('error', (err: Error) => {
@@ -297,5 +331,56 @@ export class BridgeServer {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: 'error', message }));
     }
+  }
+
+  // ─── Companion command handler ────────────────────────────────────────────
+
+  private async handleCompanionCommand(action: string, params: Record<string, unknown>): Promise<void> {
+    // Handle tally commands
+    if (action === 'tallyProgram') {
+      this.tally.program = !this.tally.program;
+      this.companion.setTally(this.tally);
+      this.broadcast({ type: 'tally', tally: this.tally });
+      return;
+    }
+    if (action === 'tallyPreview') {
+      this.tally.preview = !this.tally.preview;
+      this.companion.setTally(this.tally);
+      this.broadcast({ type: 'tally', tally: this.tally });
+      return;
+    }
+    if (action === 'tallyClear') {
+      this.tally = { program: false, preview: false, isoRec: false };
+      this.companion.setTally(this.tally);
+      this.broadcast({ type: 'tally', tally: this.tally });
+      return;
+    }
+
+    // Handle increment/decrement commands
+    if (action === 'irisUp' || action === 'irisDown') {
+      const delta = action === 'irisUp' ? 5 : -5;
+      const current = (this.ccuClient?.state.iris ?? 128) + delta;
+      params.value = Math.max(0, Math.min(255, current));
+      action = 'setIris';
+    }
+    if (action === 'gainUp' || action === 'gainDown') {
+      const delta = action === 'gainUp' ? 1 : -1;
+      const current = (this.ccuClient?.state.masterGain ?? 0) + delta;
+      params.value = Math.max(0, Math.min(7, current));
+      action = 'setMasterGain';
+    }
+    if (action === 'ndUp' || action === 'ndDown') {
+      const delta = action === 'ndUp' ? 1 : -1;
+      const current = (this.ccuClient?.state.ndFilter ?? 0) + delta;
+      params.value = Math.max(0, Math.min(4, current));
+      action = 'setNdFilter';
+    }
+
+    // Route to camera
+    if (!this.ccuClient?.connected) return;
+
+    // Create a dummy WebSocket-like object for error handling
+    const dummyWs = { readyState: WebSocket.OPEN, send: () => {} } as unknown as WebSocket;
+    await this.dispatchCameraCommand(dummyWs, action, params);
   }
 }

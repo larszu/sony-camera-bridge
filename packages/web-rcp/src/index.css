@@ -57,6 +57,43 @@ body {
   width: 100%;
 }
 
+.app__main--rcp {
+  max-width: 1400px;
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.app__sidebar {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.app__rcp {
+  flex: 1;
+  min-width: 0;
+}
+
+.app__error-panel {
+  background: #5a1a1a;
+  color: #ff8888;
+  padding: 12px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  border: 1px solid #ff4444;
+}
+
+@media (max-width: 900px) {
+  .app__main--rcp {
+    flex-direction: column;
+  }
+  .app__sidebar {
+    width: 100%;
+  }
+}
+
 /* ─── Panel ───────────────────────────────────────────────────────────────── */
 
 .panel {

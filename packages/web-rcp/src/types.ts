@@ -38,3 +38,9 @@ export interface WiznetDevice {
   parity: 'odd' | 'even' | 'none';
   lastSeen: number;
 }
+
+export interface TallyState {
+  program: boolean;
+  preview: boolean;
+  isoRec: boolean;
+}

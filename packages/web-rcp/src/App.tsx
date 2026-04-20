@@ -1,9 +1,11 @@
 import React, { useCallback } from 'react';
 import { useBridge } from './hooks/useBridge.ts';
 import { ConnectionPanel } from './components/ConnectionPanel.tsx';
-import { RcpDashboard } from './components/RcpDashboard.tsx';
+import { SonyRcpPanel } from './components/SonyRcpPanel.tsx';
 import { WiznetPanel } from './components/WiznetPanel.tsx';
 import type { WiznetDevice } from './types.ts';
+import type { TallyState } from './components/TallyBar.tsx';
+import './styles/sony-rcp.css';
 
 export default function App() {
   const {
@@ -13,6 +15,7 @@ export default function App() {
     config,
     ports,
     wiznetDevices,
+    tally,
     errorMsg,
     send,
     connectCamera,
@@ -21,6 +24,7 @@ export default function App() {
     setConfig,
     discoverWiznet,
     configureWiznet,
+    setTally,
   } = useBridge();
 
   const handleCommand = useCallback(
@@ -42,37 +46,47 @@ export default function App() {
     [setConfig],
   );
 
+  const handleSetTally = useCallback(
+    (t: Partial<TallyState>) => {
+      setTally(t);
+    },
+    [setTally],
+  );
+
   return (
     <div className="app">
-      <header className="app__header">
-        <span className="app__logo">🎥 Sony Camera RCP</span>
-        {errorMsg && <span className="app__error">{errorMsg}</span>}
-      </header>
+      <main className="app__main app__main--rcp">
+        <aside className="app__sidebar">
+          <ConnectionPanel
+            config={config}
+            ports={ports}
+            onSetConfig={setConfig}
+            onListPorts={listPorts}
+            onConnect={connectCamera}
+            onDisconnect={disconnectCamera}
+            cameraConnected={cameraConnected}
+            wsStatus={status}
+          />
 
-      <main className="app__main">
-        <ConnectionPanel
-          config={config}
-          ports={ports}
-          onSetConfig={setConfig}
-          onListPorts={listPorts}
-          onConnect={connectCamera}
-          onDisconnect={disconnectCamera}
-          cameraConnected={cameraConnected}
-          wsStatus={status}
-        />
+          <WiznetPanel
+            devices={wiznetDevices}
+            onDiscover={discoverWiznet}
+            onConfigure={configureWiznet}
+            onSelectDevice={handleSelectWiznet}
+          />
 
-        <WiznetPanel
-          devices={wiznetDevices}
-          onDiscover={discoverWiznet}
-          onConfigure={configureWiznet}
-          onSelectDevice={handleSelectWiznet}
-        />
+          {errorMsg && <div className="app__error-panel">{errorMsg}</div>}
+        </aside>
 
-        <RcpDashboard
-          state={state}
-          disabled={!cameraConnected}
-          onCommand={handleCommand}
-        />
+        <div className="app__rcp">
+          <SonyRcpPanel
+            state={state}
+            tally={tally}
+            disabled={!cameraConnected}
+            onCommand={handleCommand}
+            onSetTally={handleSetTally}
+          />
+        </div>
       </main>
     </div>
   );

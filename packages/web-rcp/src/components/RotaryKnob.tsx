@@ -1,0 +1,159 @@
+import React, { useRef, useCallback, useState, useEffect } from 'react';
+
+interface RotaryKnobProps {
+  value: number;
+  min?: number;
+  max?: number;
+  label: string;
+  unit?: string;
+  onChange: (value: number) => void;
+  disabled?: boolean;
+  size?: 'sm' | 'md' | 'lg';
+  color?: 'default' | 'red' | 'green' | 'blue' | 'yellow';
+  showValue?: boolean;
+  detent?: number; // Center detent position
+}
+
+/**
+ * Realistic Sony-style rotary potentiometer knob
+ * Drag up/down or use scroll wheel to adjust
+ */
+export function RotaryKnob({
+  value,
+  min = 0,
+  max = 255,
+  label,
+  unit = '',
+  onChange,
+  disabled = false,
+  size = 'md',
+  color = 'default',
+  showValue = true,
+  detent,
+}: RotaryKnobProps) {
+  const knobRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartY = useRef(0);
+  const dragStartValue = useRef(0);
+
+  // Calculate rotation angle (270° range, from -135° to +135°)
+  const range = max - min;
+  const normalized = (value - min) / range;
+  const angle = -135 + normalized * 270;
+
+  // Size classes
+  const sizeClass = {
+    sm: 'rotary-knob--sm',
+    md: 'rotary-knob--md',
+    lg: 'rotary-knob--lg',
+  }[size];
+
+  // Handle mouse drag
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (disabled) return;
+      e.preventDefault();
+      setIsDragging(true);
+      dragStartY.current = e.clientY;
+      dragStartValue.current = value;
+    },
+    [disabled, value],
+  );
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaY = dragStartY.current - e.clientY;
+      const sensitivity = (max - min) / 150; // 150px = full range
+      const newValue = Math.round(dragStartValue.current + deltaY * sensitivity);
+      onChange(Math.max(min, Math.min(max, newValue)));
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, min, max, onChange]);
+
+  // Handle scroll wheel
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      if (disabled) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -1 : 1;
+      const step = Math.max(1, Math.round((max - min) / 100));
+      const newValue = Math.max(min, Math.min(max, value + delta * step));
+      onChange(newValue);
+    },
+    [disabled, value, min, max, onChange],
+  );
+
+  // Double-click to reset to center/detent
+  const handleDoubleClick = useCallback(() => {
+    if (disabled) return;
+    if (detent !== undefined) {
+      onChange(detent);
+    } else {
+      onChange(Math.round((min + max) / 2));
+    }
+  }, [disabled, detent, min, max, onChange]);
+
+  // Format display value
+  const displayValue = (() => {
+    if (detent !== undefined) {
+      const delta = value - detent;
+      if (delta === 0) return '0';
+      return delta > 0 ? `+${delta}` : `${delta}`;
+    }
+    return `${value}${unit}`;
+  })();
+
+  return (
+    <div
+      className={`rotary-knob ${sizeClass} rotary-knob--${color} ${disabled ? 'rotary-knob--disabled' : ''} ${isDragging ? 'rotary-knob--dragging' : ''}`}
+    >
+      <div className="rotary-knob__label">{label}</div>
+      <div
+        ref={knobRef}
+        className="rotary-knob__body"
+        onMouseDown={handleMouseDown}
+        onWheel={handleWheel}
+        onDoubleClick={handleDoubleClick}
+      >
+        {/* Outer ring with scale marks */}
+        <div className="rotary-knob__ring">
+          {[...Array(11)].map((_, i) => (
+            <div
+              key={i}
+              className="rotary-knob__tick"
+              style={{ transform: `rotate(${-135 + i * 27}deg)` }}
+            />
+          ))}
+        </div>
+        {/* Knob cap */}
+        <div
+          className="rotary-knob__cap"
+          style={{ transform: `rotate(${angle}deg)` }}
+        >
+          <div className="rotary-knob__indicator" />
+          {/* Grip lines */}
+          <div className="rotary-knob__grip">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="rotary-knob__grip-line" />
+            ))}
+          </div>
+        </div>
+        {/* Center dot */}
+        <div className="rotary-knob__center" />
+      </div>
+      {showValue && <div className="rotary-knob__value">{displayValue}</div>}
+    </div>
+  );
+}
