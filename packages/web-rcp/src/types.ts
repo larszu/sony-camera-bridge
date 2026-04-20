@@ -18,6 +18,8 @@ export interface CameraState {
   detailLevel?: number;
 }
 
+export type CameraStatesByNumber = Record<number, CameraState>;
+
 export interface BridgeConfig {
   connectionMode?: 'tcp' | 'serial';
   tcpHost?: string;

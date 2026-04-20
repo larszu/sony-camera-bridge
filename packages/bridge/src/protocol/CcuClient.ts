@@ -379,9 +379,9 @@ export class CcuClient extends EventEmitter {
 
   // ─── Parameter Control ─────────────────────────────────────────────────────
 
-  private async sendMessage50(commands: SppCommandPair[]): Promise<ParsedPacket | null> {
+  private async sendMessage50(commands: SppCommandPair[], ccuId = this.opts.ccuId): Promise<ParsedPacket | null> {
     const reqId = this.nextRequestId();
-    const packet = buildMessage50(reqId, this.opts.ccuId, 0x02, commands);
+    const packet = buildMessage50(reqId, ccuId, 0x02, commands);
 
     return new Promise((resolve) => {
       const timeout = setTimeout(() => {
@@ -400,90 +400,90 @@ export class CcuClient extends EventEmitter {
 
   // ─── Public Camera Control API ────────────────────────────────────────────
 
-  setIris(value: number): Promise<ParsedPacket | null> {
+  setIris(value: number, ccuId?: number): Promise<ParsedPacket | null> {
     const hi = (value >> 8) & 0xff;
     const lo = value & 0xff;
     return this.sendMessage50([
       new SppCommandPair(SppCommandGroup.CHU_ANALOG_ABS, ChuAnalogParam.IRIS, hi, lo),
-    ]);
+    ], ccuId);
   }
 
-  setMasterBlack(value: number): Promise<ParsedPacket | null> {
+  setMasterBlack(value: number, ccuId?: number): Promise<ParsedPacket | null> {
     const hi = (value >> 8) & 0xff;
     const lo = value & 0xff;
     return this.sendMessage50([
       new SppCommandPair(SppCommandGroup.CHU_ANALOG_ABS, ChuAnalogParam.MASTER_BLACK, hi, lo),
-    ]);
+    ], ccuId);
   }
 
-  setBlackBalance(r: number, g: number, b: number): Promise<ParsedPacket | null> {
+  setBlackBalance(r: number, g: number, b: number, ccuId?: number): Promise<ParsedPacket | null> {
     return this.sendMessage50([
       new SppCommandPair(SppCommandGroup.CHU_ANALOG_ABS, ChuAnalogParam.BLACK_R, (r >> 8) & 0xff, r & 0xff),
       new SppCommandPair(SppCommandGroup.CHU_ANALOG_ABS, ChuAnalogParam.BLACK_G, (g >> 8) & 0xff, g & 0xff),
       new SppCommandPair(SppCommandGroup.CHU_ANALOG_ABS, ChuAnalogParam.BLACK_B, (b >> 8) & 0xff, b & 0xff),
-    ]);
+    ], ccuId);
   }
 
-  setWhiteBalance(r: number, g: number, b: number): Promise<ParsedPacket | null> {
+  setWhiteBalance(r: number, g: number, b: number, ccuId?: number): Promise<ParsedPacket | null> {
     return this.sendMessage50([
       new SppCommandPair(SppCommandGroup.CHU_ANALOG_ABS, ChuAnalogParam.WHITE_R, (r >> 8) & 0xff, r & 0xff),
       new SppCommandPair(SppCommandGroup.CHU_ANALOG_ABS, ChuAnalogParam.WHITE_G, (g >> 8) & 0xff, g & 0xff),
       new SppCommandPair(SppCommandGroup.CHU_ANALOG_ABS, ChuAnalogParam.WHITE_B, (b >> 8) & 0xff, b & 0xff),
-    ]);
+    ], ccuId);
   }
 
-  setMasterGain(value: number): Promise<ParsedPacket | null> {
+  setMasterGain(value: number, ccuId?: number): Promise<ParsedPacket | null> {
     return this.sendMessage50([
       new SppCommandPair(SppCommandGroup.CHU_SWITCH_ABS, ChuSwitchParam.MASTER_GAIN, value),
-    ]);
+    ], ccuId);
   }
 
-  setMasterGamma(value: number): Promise<ParsedPacket | null> {
+  setMasterGamma(value: number, ccuId?: number): Promise<ParsedPacket | null> {
     const hi = (value >> 8) & 0xff;
     const lo = value & 0xff;
     return this.sendMessage50([
       new SppCommandPair(SppCommandGroup.CHU_ANALOG_ABS, ChuAnalogParam.MASTER_GAMMA, hi, lo),
-    ]);
+    ], ccuId);
   }
 
-  setSaturation(value: number): Promise<ParsedPacket | null> {
+  setSaturation(value: number, ccuId?: number): Promise<ParsedPacket | null> {
     const hi = (value >> 8) & 0xff;
     const lo = value & 0xff;
     return this.sendMessage50([
       new SppCommandPair(SppCommandGroup.CHU_ANALOG_ABS, ChuAnalogParam.SATURATION, hi, lo),
-    ]);
+    ], ccuId);
   }
 
-  setDetailLevel(value: number): Promise<ParsedPacket | null> {
+  setDetailLevel(value: number, ccuId?: number): Promise<ParsedPacket | null> {
     const hi = (value >> 8) & 0xff;
     const lo = value & 0xff;
     return this.sendMessage50([
       new SppCommandPair(SppCommandGroup.CHU_ANALOG_ABS, ChuAnalogParam.DETAIL_LEVEL, hi, lo),
-    ]);
+    ], ccuId);
   }
 
-  setBars(on: boolean): Promise<ParsedPacket | null> {
+  setBars(on: boolean, ccuId?: number): Promise<ParsedPacket | null> {
     return this.sendMessage50([
       new SppCommandPair(SppCommandGroup.CCU_SWITCH_ABS, CcuSwitchParam.BARS_CHARACTER, on ? 1 : 0),
-    ]);
+    ], ccuId);
   }
 
-  setCameraPower(on: boolean): Promise<ParsedPacket | null> {
+  setCameraPower(on: boolean, ccuId?: number): Promise<ParsedPacket | null> {
     return this.sendMessage50([
       new SppCommandPair(SppCommandGroup.CCU_SWITCH_ABS, CcuSwitchParam.CAM_PW, on ? 1 : 0),
-    ]);
+    ], ccuId);
   }
 
-  setNdFilter(value: number): Promise<ParsedPacket | null> {
+  setNdFilter(value: number, ccuId?: number): Promise<ParsedPacket | null> {
     return this.sendMessage50([
       new SppCommandPair(SppCommandGroup.CHU_SWITCH_ABS, ChuSwitchParam.ND_FILTER, value),
-    ]);
+    ], ccuId);
   }
 
-  setShutterSpeed(value: number): Promise<ParsedPacket | null> {
+  setShutterSpeed(value: number, ccuId?: number): Promise<ParsedPacket | null> {
     return this.sendMessage50([
       new SppCommandPair(SppCommandGroup.CHU_SWITCH_ABS, ChuSwitchParam.SHUTTER_SPEED, value),
-    ]);
+    ], ccuId);
   }
 
   // ─── Internals ─────────────────────────────────────────────────────────────

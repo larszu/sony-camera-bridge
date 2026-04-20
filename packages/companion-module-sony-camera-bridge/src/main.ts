@@ -13,7 +13,7 @@ const DEFAULT_TALLY: BridgeTallyState = {
   isoRec: false,
 }
 
-export class ModuleInstance extends InstanceBase<any> {
+export class ModuleInstance extends InstanceBase<ModuleConfig, undefined> {
   config: ModuleConfig = DEFAULT_CONFIG
   bridgeConnected = false
   cameraConnected = false

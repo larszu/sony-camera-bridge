@@ -53,6 +53,8 @@ export class BridgeServer {
   private wiznetDiscovery = new WiznetDiscovery();
   private companion = new CompanionServer();
   private tally: TallyState = { program: false, preview: false, isoRec: false };
+  private cameraStates = new Map<number, CameraState>();
+  private lastCommandCameraNumber: number | null = null;
   private config: BridgeConfig = {
     connectionMode: 'tcp',
     tcpHost: '192.168.1.10',
@@ -102,9 +104,16 @@ export class BridgeServer {
     // Send current state immediately on connect
     ws.send(JSON.stringify({ type: 'config', config: this.config }));
     ws.send(JSON.stringify({ type: 'tally', tally: this.tally }));
+    for (const [cameraNumber, state] of this.cameraStates.entries()) {
+      ws.send(JSON.stringify({ type: 'state', cameraNumber, state }));
+    }
     if (this.ccuClient?.connected) {
       ws.send(JSON.stringify({ type: 'connected' }));
-      ws.send(JSON.stringify({ type: 'state', state: this.ccuClient.state }));
+      // Send ccuClient live state associated with the configured default camera
+      const defaultCam = this.config.ccuId ?? 0;
+      if (!this.cameraStates.has(defaultCam)) {
+        ws.send(JSON.stringify({ type: 'state', cameraNumber: defaultCam, state: this.ccuClient.state }));
+      }
     }
 
     ws.on('message', (raw) => {
@@ -240,8 +249,15 @@ export class BridgeServer {
     });
 
     this.ccuClient.on('stateChanged', (state: CameraState) => {
-      this.broadcast({ type: 'state', state });
-      this.companion.updateCameraState(state as Record<string, unknown>);
+      // Associate hardware feedback with the last targeted camera
+      const camNum = this.lastCommandCameraNumber ?? (this.config.ccuId ?? 0);
+      const mergedState = {
+        ...(this.cameraStates.get(camNum) ?? {}),
+        ...state,
+      };
+      this.cameraStates.set(camNum, mergedState);
+      this.broadcast({ type: 'state', cameraNumber: camNum, state: mergedState });
+      this.companion.updateCameraStateFor(camNum, mergedState as Record<string, unknown>);
     });
 
     this.ccuClient.on('disconnected', () => {
@@ -268,52 +284,73 @@ export class BridgeServer {
     }
 
     const num = (key: string, def = 0) => Number(params[key] ?? def);
+    const targetCamera = num('cameraNumber', this.config.ccuId ?? 0);
+    this.lastCommandCameraNumber = targetCamera;
+
+    const currentState = this.cameraStates.get(targetCamera) ?? {};
+    const stateUpdates: Partial<CameraState> = {};
 
     switch (cmd) {
       case 'setIris':
-        await this.ccuClient.setIris(num('value'));
+        await this.ccuClient.setIris(num('value'), targetCamera);
+        stateUpdates.iris = num('value');
         break;
       case 'setMasterBlack':
-        await this.ccuClient.setMasterBlack(num('value'));
+        await this.ccuClient.setMasterBlack(num('value'), targetCamera);
+        stateUpdates.masterBlack = num('value');
         break;
       case 'setBlackBalance':
-        await this.ccuClient.setBlackBalance(num('r'), num('g'), num('b'));
+        await this.ccuClient.setBlackBalance(num('r'), num('g'), num('b'), targetCamera);
+        if (params['r'] !== undefined) stateUpdates.blackR = num('r');
+        if (params['g'] !== undefined) stateUpdates.blackG = num('g');
+        if (params['b'] !== undefined) stateUpdates.blackB = num('b');
         break;
       case 'setWhiteBalance':
-        await this.ccuClient.setWhiteBalance(num('r'), num('g'), num('b'));
+        await this.ccuClient.setWhiteBalance(num('r'), num('g'), num('b'), targetCamera);
+        if (params['r'] !== undefined) stateUpdates.whiteR = num('r');
+        if (params['g'] !== undefined) stateUpdates.whiteG = num('g');
+        if (params['b'] !== undefined) stateUpdates.whiteB = num('b');
         break;
       case 'setMasterGain':
-        await this.ccuClient.setMasterGain(num('value'));
+        await this.ccuClient.setMasterGain(num('value'), targetCamera);
+        stateUpdates.masterGain = num('value');
         break;
       case 'setMasterGamma':
-        await this.ccuClient.setMasterGamma(num('value'));
+        await this.ccuClient.setMasterGamma(num('value'), targetCamera);
+        stateUpdates.masterGamma = num('value');
         break;
       case 'setSaturation':
-        await this.ccuClient.setSaturation(num('value'));
+        await this.ccuClient.setSaturation(num('value'), targetCamera);
+        stateUpdates.saturation = num('value');
         break;
       case 'setDetailLevel':
-        await this.ccuClient.setDetailLevel(num('value'));
+        await this.ccuClient.setDetailLevel(num('value'), targetCamera);
+        stateUpdates.detailLevel = num('value');
         break;
       case 'setBars':
-        await this.ccuClient.setBars(Boolean(params['on']));
+        await this.ccuClient.setBars(Boolean(params['on']), targetCamera);
+        stateUpdates.bars = Boolean(params['on']);
         break;
       case 'setCameraPower':
-        await this.ccuClient.setCameraPower(Boolean(params['on']));
+        await this.ccuClient.setCameraPower(Boolean(params['on']), targetCamera);
+        stateUpdates.cameraPower = Boolean(params['on']);
         break;
       case 'setNdFilter':
-        await this.ccuClient.setNdFilter(num('value'));
+        await this.ccuClient.setNdFilter(num('value'), targetCamera);
+        stateUpdates.ndFilter = num('value');
         break;
       case 'setShutterSpeed':
-        await this.ccuClient.setShutterSpeed(num('value'));
+        await this.ccuClient.setShutterSpeed(num('value'), targetCamera);
+        stateUpdates.shutterSpeed = num('value');
         break;
       default:
         this.sendError(ws, `Unknown command: ${cmd}`);
     }
 
-    // Broadcast updated state
-    if (this.ccuClient) {
-      this.broadcast({ type: 'state', state: this.ccuClient.state });
-    }
+    const mergedState = { ...currentState, ...stateUpdates };
+    this.cameraStates.set(targetCamera, mergedState);
+    this.broadcast({ type: 'state', cameraNumber: targetCamera, state: mergedState });
+    this.companion.updateCameraStateFor(targetCamera, mergedState as Record<string, unknown>);
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -356,22 +393,25 @@ export class BridgeServer {
       return;
     }
 
-    // Handle increment/decrement commands
+    // Handle increment/decrement commands — read from per-camera state, not global ccuClient state
+    const companionCamNum = Number(params.cameraNumber ?? this.config.ccuId ?? 0);
+    const perCamState = this.cameraStates.get(companionCamNum) ?? {};
+
     if (action === 'irisUp' || action === 'irisDown') {
       const delta = action === 'irisUp' ? 5 : -5;
-      const current = (this.ccuClient?.state.iris ?? 128) + delta;
+      const current = (perCamState.iris ?? this.ccuClient?.state.iris ?? 128) + delta;
       params.value = Math.max(0, Math.min(255, current));
       action = 'setIris';
     }
     if (action === 'gainUp' || action === 'gainDown') {
       const delta = action === 'gainUp' ? 1 : -1;
-      const current = (this.ccuClient?.state.masterGain ?? 0) + delta;
+      const current = (perCamState.masterGain ?? this.ccuClient?.state.masterGain ?? 0) + delta;
       params.value = Math.max(0, Math.min(7, current));
       action = 'setMasterGain';
     }
     if (action === 'ndUp' || action === 'ndDown') {
       const delta = action === 'ndUp' ? 1 : -1;
-      const current = (this.ccuClient?.state.ndFilter ?? 0) + delta;
+      const current = (perCamState.ndFilter ?? this.ccuClient?.state.ndFilter ?? 0) + delta;
       params.value = Math.max(0, Math.min(4, current));
       action = 'setNdFilter';
     }

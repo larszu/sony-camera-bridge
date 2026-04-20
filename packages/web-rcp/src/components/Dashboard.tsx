@@ -1,8 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { SonyRcpPanel } from './SonyRcpPanel.tsx';
 import { BlackmagicRcpPanel } from './BlackmagicRcpPanel.tsx';
 import { CameraConfigPanel } from './CameraConfigPanel.tsx';
-import type { CameraConnection, CameraProtocol, TallyState, CameraState, DashboardState, CameraType } from '../types.ts';
+import type { CameraConnection, TallyState, CameraState, DashboardState, CameraStatesByNumber } from '../types.ts';
 
 // Generate unique ID
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -52,6 +52,8 @@ function createCamera(cameraNumber: number, type: 'sony' | 'blackmagic' = 'sony'
 }
 
 interface DashboardProps {
+  bridgeConnected?: boolean;
+  remoteCameraStates?: CameraStatesByNumber;
   onSendCommand?: (cameraId: string, cmd: string, params: Record<string, unknown>) => void;
 }
 
@@ -59,7 +61,7 @@ interface DashboardProps {
  * Multi-RCP Dashboard
  * Manages multiple camera connections with individual settings
  */
-export function Dashboard({ onSendCommand }: DashboardProps) {
+export function Dashboard({ bridgeConnected = false, remoteCameraStates = {}, onSendCommand }: DashboardProps) {
   const [state, setState] = useState<DashboardState>(() => ({
     cameras: [createCamera(1)],
     selectedCameraId: null,
@@ -69,6 +71,20 @@ export function Dashboard({ onSendCommand }: DashboardProps) {
 
   const [showConfig, setShowConfig] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setState((prev) => ({
+      ...prev,
+      cameras: prev.cameras.map((camera) => ({
+        ...camera,
+        status: bridgeConnected ? 'connected' : camera.status,
+        state: {
+          ...camera.state,
+          ...(remoteCameraStates[camera.cameraNumber] ?? {}),
+        },
+      })),
+    }));
+  }, [bridgeConnected, remoteCameraStates]);
 
   // Add a new Sony camera
   const addSonyCamera = useCallback(() => {
@@ -164,7 +180,8 @@ export function Dashboard({ onSendCommand }: DashboardProps) {
     }));
     
     // Send to backend
-    onSendCommand?.(cameraId, cmd, params);
+    const targetCamera = state.cameras.find((camera) => camera.id === cameraId)?.cameraNumber;
+    onSendCommand?.(String(targetCamera ?? cameraId), cmd, params);
   }, [onSendCommand]);
 
   // Handle tally change

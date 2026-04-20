@@ -4,7 +4,7 @@ import { ConnectionPanel } from './components/ConnectionPanel.tsx';
 import { SonyRcpPanel } from './components/SonyRcpPanel.tsx';
 import { WiznetPanel } from './components/WiznetPanel.tsx';
 import { Dashboard } from './components/Dashboard.tsx';
-import type { WiznetDevice } from './types.ts';
+import type { CameraState, WiznetDevice } from './types.ts';
 import type { TallyState } from './components/TallyBar.tsx';
 import './styles/sony-rcp.css';
 
@@ -17,6 +17,7 @@ export default function App() {
     status,
     cameraConnected,
     state,
+    cameraStates,
     config,
     ports,
     wiznetDevices,
@@ -70,7 +71,14 @@ export default function App() {
             Single Camera Mode
           </button>
         </header>
-        <Dashboard />
+        <Dashboard
+          bridgeConnected={cameraConnected}
+          remoteCameraStates={cameraStates}
+          onSendCommand={(cameraId, cmd, params) => {
+            const cameraNumber = Number(cameraId);
+            send('command', { cmd, params: { ...params, cameraNumber } });
+          }}
+        />
       </div>
     );
   }

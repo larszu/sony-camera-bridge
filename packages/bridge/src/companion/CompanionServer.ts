@@ -32,11 +32,17 @@ export interface CompanionCommand {
   params?: Record<string, unknown>;
 }
 
+export interface CameraStateBroadcast {
+  cameraNumber: number;
+  state: Record<string, unknown>;
+}
+
 export class CompanionServer extends EventEmitter {
   private httpServer: ReturnType<typeof createServer>;
   private wss: WebSocketServer;
   private tally: TallyState = { program: false, preview: false, isoRec: false };
   private cameraState: Record<string, unknown> = {};
+  private cameraStates: CameraStateBroadcast[] = [];
   private connected = false;
 
   constructor(
@@ -66,6 +72,16 @@ export class CompanionServer extends EventEmitter {
   updateCameraState(state: Record<string, unknown>): void {
     this.cameraState = { ...this.cameraState, ...state };
     this.broadcastWs({ type: 'state', state: this.cameraState });
+  }
+
+  updateCameraStateFor(cameraNumber: number, state: Record<string, unknown>): void {
+    const existing = this.cameraStates.find((entry) => entry.cameraNumber === cameraNumber);
+    if (existing) {
+      existing.state = { ...existing.state, ...state };
+    } else {
+      this.cameraStates.push({ cameraNumber, state: { ...state } });
+    }
+    this.broadcastWs({ type: 'state', cameraNumber, state });
   }
 
   setConnected(connected: boolean): void {
@@ -100,7 +116,7 @@ export class CompanionServer extends EventEmitter {
     const url = new URL(req.url || '/', `http://localhost:${this.httpPort}`);
 
     if (url.pathname === '/api/state' && req.method === 'GET') {
-      this.sendJson(res, { connected: this.connected, state: this.cameraState });
+      this.sendJson(res, { connected: this.connected, state: this.cameraState, cameraStates: this.cameraStates });
       return;
     }
 
@@ -222,6 +238,9 @@ export class CompanionServer extends EventEmitter {
     ws.send(JSON.stringify({ type: 'connection', connected: this.connected }));
     ws.send(JSON.stringify({ type: 'tally', tally: this.tally }));
     ws.send(JSON.stringify({ type: 'state', state: this.cameraState }));
+    for (const cameraState of this.cameraStates) {
+      ws.send(JSON.stringify({ type: 'state', cameraNumber: cameraState.cameraNumber, state: cameraState.state }));
+    }
 
     ws.on('message', (data) => {
       try {

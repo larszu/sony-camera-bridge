@@ -11,11 +11,13 @@ const devRoot = path.join(repoRoot, 'companion-dev')
 const targetRoot = path.join(devRoot, 'companion-module-sony-camera-bridge')
 
 fs.mkdirSync(devRoot, { recursive: true })
-fs.rmSync(targetRoot, { recursive: true, force: true })
 fs.mkdirSync(targetRoot, { recursive: true })
 
 for (const entry of ['package.json', 'companion', 'dist']) {
-  fs.cpSync(path.join(moduleRoot, entry), path.join(targetRoot, entry), { recursive: true })
+  fs.cpSync(path.join(moduleRoot, entry), path.join(targetRoot, entry), {
+    recursive: true,
+    force: true,
+  })
 }
 
 execFileSync('npm', ['install', '--omit=dev', '--no-package-lock'], {

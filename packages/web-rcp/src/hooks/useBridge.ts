@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import type { CameraState, BridgeConfig, WiznetDevice, TallyState } from '../types.ts';
+import type { CameraState, CameraStatesByNumber, BridgeConfig, WiznetDevice, TallyState } from '../types.ts';
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error' | 'disconnected';
 
@@ -11,6 +11,7 @@ interface UseBridgeReturn {
   status: ConnectionStatus;
   cameraConnected: boolean;
   state: CameraState;
+  cameraStates: CameraStatesByNumber;
   config: BridgeConfig;
   ports: string[];
   wiznetDevices: WiznetDevice[];
@@ -26,6 +27,12 @@ interface UseBridgeReturn {
   setTally: (tally: Partial<TallyState>) => void;
 }
 
+interface StateResponseMessage {
+  type: 'state';
+  state?: CameraState;
+  cameraNumber?: number;
+}
+
 const WS_URL = `ws://${window.location.hostname}:9700`;
 
 export function useBridge(): UseBridgeReturn {
@@ -33,6 +40,7 @@ export function useBridge(): UseBridgeReturn {
   const [status, setStatus] = useState<ConnectionStatus>('idle');
   const [cameraConnected, setCameraConnected] = useState(false);
   const [state, setState] = useState<CameraState>({});
+  const [cameraStates, setCameraStates] = useState<CameraStatesByNumber>({});
   const [config, setConfigState] = useState<BridgeConfig>({ connectionMode: 'tcp', tcpHost: '192.168.1.10', tcpPort: 7700, serialPath: '', baudRate: 38400, ccuId: 0 });
   const [ports, setPorts] = useState<string[]>([]);
   const [wiznetDevices, setWiznetDevices] = useState<WiznetDevice[]>([]);
@@ -53,15 +61,25 @@ export function useBridge(): UseBridgeReturn {
       try {
         const msg = JSON.parse(event.data as string);
         switch (msg.type) {
-          case 'state':
-            setState((prev) => ({ ...prev, ...msg.state }));
+          case 'state': {
+            const stateMsg = msg as StateResponseMessage;
+            if (typeof stateMsg.cameraNumber === 'number') {
+              setCameraStates((prev) => ({
+                ...prev,
+                [stateMsg.cameraNumber!]: { ...(prev[stateMsg.cameraNumber!] ?? {}), ...(stateMsg.state ?? {}) },
+              }));
+            } else {
+              setState((prev) => ({ ...prev, ...stateMsg.state }));
+            }
             break;
+          }
           case 'connected':
             setCameraConnected(true);
             break;
           case 'disconnected':
             setCameraConnected(false);
             setState({});
+            setCameraStates({});
             break;
           case 'error':
             setErrorMsg(msg.message as string);
@@ -133,5 +151,5 @@ export function useBridge(): UseBridgeReturn {
     send('setTally', { tally: t });
   }, [send]);
 
-  return { status, cameraConnected, state, config, ports, wiznetDevices, tally, errorMsg, send, connectCamera, disconnectCamera, listPorts, setConfig, discoverWiznet, configureWiznet, setTally };
+  return { status, cameraConnected, state, cameraStates, config, ports, wiznetDevices, tally, errorMsg, send, connectCamera, disconnectCamera, listPorts, setConfig, discoverWiznet, configureWiznet, setTally };
 }

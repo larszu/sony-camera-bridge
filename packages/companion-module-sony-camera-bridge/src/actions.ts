@@ -1,4 +1,5 @@
 import type { ModuleInstance } from './main.js'
+import { parseCameraTargets } from './config.js'
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
@@ -9,115 +10,66 @@ function getNumber(self: ModuleInstance, key: keyof ModuleInstance['cameraState'
   return typeof value === 'number' ? value : fallback
 }
 
+function getTargetOptions(self: ModuleInstance) {
+  const choices = parseCameraTargets(self.config).map((target) => ({ id: target.id, label: target.label }))
+  return [
+    {
+      id: 'cameraNumber',
+      type: 'dropdown' as const,
+      label: 'Target Camera',
+      default: self.config.defaultCamera,
+      choices,
+    },
+  ]
+}
+
+function getTargetCamera(options: Record<string, unknown>, self: ModuleInstance): number {
+  return Number(options.cameraNumber ?? self.config.defaultCamera)
+}
+
+function makeStepAction(
+  self: ModuleInstance,
+  name: string,
+  command: string,
+  stateKey: keyof ModuleInstance['cameraState'],
+  step: number,
+  min: number,
+  max: number,
+  fallback: number,
+) {
+  return {
+    name,
+    options: getTargetOptions(self),
+    callback: async (event: { options: Record<string, unknown> }) => {
+      const current = getNumber(self, stateKey, fallback)
+      await self.sendCameraCommand(command, {
+        value: clamp(current + step, min, max),
+        cameraNumber: getTargetCamera(event.options, self),
+      })
+    },
+  }
+}
+
 export function updateActions(self: ModuleInstance): void {
   self.setActionDefinitions({
-    set_iris: {
-      name: 'Set iris',
-      options: [
-        { id: 'value', type: 'number', label: 'Iris (0-255)', default: 128, min: 0, max: 255 },
-      ],
-      callback: async (event) => {
-        await self.sendCameraCommand('setIris', { value: Number(event.options.value) })
-      },
-    },
-    iris_step: {
-      name: 'Iris step up/down',
-      options: [
-        {
-          id: 'direction',
-          type: 'dropdown',
-          label: 'Direction',
-          default: 'up',
-          choices: [
-            { id: 'up', label: 'Up' },
-            { id: 'down', label: 'Down' },
-          ],
-        },
-        { id: 'step', type: 'number', label: 'Step size', default: 4, min: 1, max: 64 },
-      ],
-      callback: async (event) => {
-        const current = getNumber(self, 'iris', 128)
-        const delta = Number(event.options.step) * (event.options.direction === 'down' ? -1 : 1)
-        await self.sendCameraCommand('setIris', { value: clamp(current + delta, 0, 255) })
-      },
-    },
-    set_master_gain: {
-      name: 'Set master gain',
-      options: [
-        { id: 'value', type: 'number', label: 'Gain index (0-6)', default: 0, min: 0, max: 6 },
-      ],
-      callback: async (event) => {
-        await self.sendCameraCommand('setMasterGain', { value: Number(event.options.value) })
-      },
-    },
-    set_master_black: {
-      name: 'Set master black',
-      options: [
-        { id: 'value', type: 'number', label: 'Master black (0-255)', default: 128, min: 0, max: 255 },
-      ],
-      callback: async (event) => {
-        await self.sendCameraCommand('setMasterBlack', { value: Number(event.options.value) })
-      },
-    },
-    set_master_gamma: {
-      name: 'Set master gamma',
-      options: [
-        { id: 'value', type: 'number', label: 'Master gamma (0-255)', default: 128, min: 0, max: 255 },
-      ],
-      callback: async (event) => {
-        await self.sendCameraCommand('setMasterGamma', { value: Number(event.options.value) })
-      },
-    },
-    set_saturation: {
-      name: 'Set saturation',
-      options: [
-        { id: 'value', type: 'number', label: 'Saturation (0-255)', default: 128, min: 0, max: 255 },
-      ],
-      callback: async (event) => {
-        await self.sendCameraCommand('setSaturation', { value: Number(event.options.value) })
-      },
-    },
-    set_detail_level: {
-      name: 'Set detail level',
-      options: [
-        { id: 'value', type: 'number', label: 'Detail level (0-255)', default: 128, min: 0, max: 255 },
-      ],
-      callback: async (event) => {
-        await self.sendCameraCommand('setDetailLevel', { value: Number(event.options.value) })
-      },
-    },
-    set_shutter_speed: {
-      name: 'Set shutter speed',
-      options: [
-        { id: 'value', type: 'number', label: 'Shutter speed', default: 0, min: 0, max: 100000 },
-      ],
-      callback: async (event) => {
-        await self.sendCameraCommand('setShutterSpeed', { value: Number(event.options.value) })
-      },
-    },
-    set_nd_filter: {
-      name: 'Set ND filter',
-      options: [
-        {
-          id: 'value',
-          type: 'dropdown',
-          label: 'ND filter',
-          default: 0,
-          choices: [
-            { id: 0, label: 'ND 1' },
-            { id: 1, label: 'ND 2' },
-            { id: 2, label: 'ND 3' },
-            { id: 3, label: 'ND 4' },
-          ],
-        },
-      ],
-      callback: async (event) => {
-        await self.sendCameraCommand('setNdFilter', { value: Number(event.options.value) })
-      },
-    },
+    iris_up: makeStepAction(self, 'Iris +', 'setIris', 'iris', 5, 0, 255, 128),
+    iris_down: makeStepAction(self, 'Iris -', 'setIris', 'iris', -5, 0, 255, 128),
+    gain_up: makeStepAction(self, 'Gain +', 'setMasterGain', 'masterGain', 1, 0, 7, 0),
+    gain_down: makeStepAction(self, 'Gain -', 'setMasterGain', 'masterGain', -1, 0, 7, 0),
+    black_up: makeStepAction(self, 'Master Black +', 'setMasterBlack', 'masterBlack', 4, 0, 255, 128),
+    black_down: makeStepAction(self, 'Master Black -', 'setMasterBlack', 'masterBlack', -4, 0, 255, 128),
+    gamma_up: makeStepAction(self, 'Master Gamma +', 'setMasterGamma', 'masterGamma', 4, 0, 255, 128),
+    gamma_down: makeStepAction(self, 'Master Gamma -', 'setMasterGamma', 'masterGamma', -4, 0, 255, 128),
+    saturation_up: makeStepAction(self, 'Saturation +', 'setSaturation', 'saturation', 4, 0, 255, 128),
+    saturation_down: makeStepAction(self, 'Saturation -', 'setSaturation', 'saturation', -4, 0, 255, 128),
+    detail_up: makeStepAction(self, 'Detail +', 'setDetailLevel', 'detailLevel', 4, 0, 255, 128),
+    detail_down: makeStepAction(self, 'Detail -', 'setDetailLevel', 'detailLevel', -4, 0, 255, 128),
+    nd_up: makeStepAction(self, 'ND +', 'setNdFilter', 'ndFilter', 1, 0, 3, 0),
+    nd_down: makeStepAction(self, 'ND -', 'setNdFilter', 'ndFilter', -1, 0, 3, 0),
     set_bars: {
-      name: 'Set bars on/off',
+      name: 'Bars toggle',
       options: [
+        ...getTargetOptions(self),
         {
           id: 'on',
           type: 'dropdown',
@@ -133,12 +85,13 @@ export function updateActions(self: ModuleInstance): void {
       callback: async (event) => {
         const option = String(event.options.on)
         const next = option === 'toggle' ? !Boolean(self.cameraState.bars) : option === 'on'
-        await self.sendCameraCommand('setBars', { on: next })
+        await self.sendCameraCommand('setBars', { on: next, cameraNumber: getTargetCamera(event.options, self) })
       },
     },
     set_camera_power: {
-      name: 'Set camera power',
+      name: 'Power toggle',
       options: [
+        ...getTargetOptions(self),
         {
           id: 'on',
           type: 'dropdown',
@@ -154,7 +107,7 @@ export function updateActions(self: ModuleInstance): void {
       callback: async (event) => {
         const option = String(event.options.on)
         const next = option === 'toggle' ? !Boolean(self.cameraState.cameraPower) : option === 'on'
-        await self.sendCameraCommand('setCameraPower', { on: next })
+        await self.sendCameraCommand('setCameraPower', { on: next, cameraNumber: getTargetCamera(event.options, self) })
       },
     },
     tally_program: {
