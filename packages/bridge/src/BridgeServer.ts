@@ -18,6 +18,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { createServer, IncomingMessage } from 'http';
 import { Rs422Transport } from './transport/Rs422Transport.js';
 import { CcuClient, CameraState } from './protocol/CcuClient.js';
+import { WiznetDiscovery, WiznetDevice, WiznetDeviceConfig } from './discovery/WiznetDiscovery.js';
 
 export interface BridgeConfig {
   /** Connection mode: 'tcp' or 'serial' */
@@ -34,10 +35,12 @@ export interface BridgeConfig {
 }
 
 interface ClientMessage {
-  type: 'command' | 'connect' | 'disconnect' | 'listPorts' | 'getConfig' | 'setConfig';
+  type: 'command' | 'connect' | 'disconnect' | 'listPorts' | 'getConfig' | 'setConfig' | 'discoverWiznet' | 'configureWiznet';
   cmd?: string;
   params?: Record<string, unknown>;
   config?: BridgeConfig;
+  deviceIp?: string;
+  deviceConfig?: WiznetDeviceConfig;
 }
 
 export class BridgeServer {
@@ -45,6 +48,7 @@ export class BridgeServer {
   private httpServer: ReturnType<typeof createServer>;
   private ccuClient: CcuClient | null = null;
   private rs422: Rs422Transport | null = null;
+  private wiznetDiscovery = new WiznetDiscovery();
   private config: BridgeConfig = {
     connectionMode: 'tcp',
     tcpHost: '192.168.1.10',
@@ -135,6 +139,25 @@ export class BridgeServer {
         if (!msg.cmd) break;
         await this.dispatchCameraCommand(ws, msg.cmd, msg.params ?? {});
         break;
+
+      case 'discoverWiznet': {
+        console.log('[BridgeServer] Scanning for WIZ108SR devices...');
+        const devices = await this.wiznetDiscovery.discover();
+        console.log(`[BridgeServer] Found ${devices.length} device(s)`);
+        ws.send(JSON.stringify({ type: 'wiznetDevices', devices }));
+        break;
+      }
+
+      case 'configureWiznet': {
+        if (!msg.deviceIp || !msg.deviceConfig) {
+          this.sendError(ws, 'Missing deviceIp or deviceConfig');
+          break;
+        }
+        console.log(`[BridgeServer] Configuring WIZ108SR at ${msg.deviceIp}...`);
+        const ok = await this.wiznetDiscovery.configure(msg.deviceIp, msg.deviceConfig);
+        ws.send(JSON.stringify({ type: 'wiznetConfigResult', success: ok, ip: msg.deviceIp }));
+        break;
+      }
     }
   }
 

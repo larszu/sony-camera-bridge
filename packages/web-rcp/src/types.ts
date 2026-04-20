@@ -26,3 +26,15 @@ export interface BridgeConfig {
   baudRate?: number;
   ccuId?: number;
 }
+
+export interface WiznetDevice {
+  ident: string;
+  fw: string;
+  mac: string;
+  ip: string;
+  port: number;
+  mode: 'server' | 'client';
+  baud: number;
+  parity: 'odd' | 'even' | 'none';
+  lastSeen: number;
+}

@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import type { CameraState, BridgeConfig } from '../types.ts';
+import type { CameraState, BridgeConfig, WiznetDevice } from '../types.ts';
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error' | 'disconnected';
 
@@ -13,12 +13,15 @@ interface UseBridgeReturn {
   state: CameraState;
   config: BridgeConfig;
   ports: string[];
+  wiznetDevices: WiznetDevice[];
   errorMsg: string | null;
   send: (type: string, payload?: Record<string, unknown>) => void;
   connectCamera: () => void;
   disconnectCamera: () => void;
   listPorts: () => void;
   setConfig: (config: Partial<BridgeConfig>) => void;
+  discoverWiznet: () => void;
+  configureWiznet: (deviceIp: string, deviceConfig: Record<string, unknown>) => void;
 }
 
 const WS_URL = `ws://${window.location.hostname}:9700`;
@@ -30,6 +33,7 @@ export function useBridge(): UseBridgeReturn {
   const [state, setState] = useState<CameraState>({});
   const [config, setConfigState] = useState<BridgeConfig>({ connectionMode: 'tcp', tcpHost: '192.168.1.10', tcpPort: 7700, serialPath: '', baudRate: 38400, ccuId: 0 });
   const [ports, setPorts] = useState<string[]>([]);
+  const [wiznetDevices, setWiznetDevices] = useState<WiznetDevice[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const connect = useCallback(() => {
@@ -64,6 +68,16 @@ export function useBridge(): UseBridgeReturn {
             break;
           case 'config':
             setConfigState(msg.config as BridgeConfig);
+            break;
+          case 'wiznetDevices':
+            setWiznetDevices(msg.devices as WiznetDevice[]);
+            break;
+          case 'wiznetConfigResult':
+            if (msg.success) {
+              setErrorMsg(null);
+            } else {
+              setErrorMsg(`Failed to configure WIZ108SR at ${msg.ip}`);
+            }
             break;
         }
       } catch { /* ignore malformed */ }
@@ -103,5 +117,11 @@ export function useBridge(): UseBridgeReturn {
     send('setConfig', { config: cfg });
   }, [send]);
 
-  return { status, cameraConnected, state, config, ports, errorMsg, send, connectCamera, disconnectCamera, listPorts, setConfig };
+  const discoverWiznet = useCallback(() => send('discoverWiznet'), [send]);
+
+  const configureWiznet = useCallback((deviceIp: string, deviceConfig: Record<string, unknown>) => {
+    send('configureWiznet', { deviceIp, deviceConfig });
+  }, [send]);
+
+  return { status, cameraConnected, state, config, ports, wiznetDevices, errorMsg, send, connectCamera, disconnectCamera, listPorts, setConfig, discoverWiznet, configureWiznet };
 }

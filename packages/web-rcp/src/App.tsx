@@ -2,6 +2,8 @@ import React, { useCallback } from 'react';
 import { useBridge } from './hooks/useBridge.ts';
 import { ConnectionPanel } from './components/ConnectionPanel.tsx';
 import { RcpDashboard } from './components/RcpDashboard.tsx';
+import { WiznetPanel } from './components/WiznetPanel.tsx';
+import type { WiznetDevice } from './types.ts';
 
 export default function App() {
   const {
@@ -10,12 +12,15 @@ export default function App() {
     state,
     config,
     ports,
+    wiznetDevices,
     errorMsg,
     send,
     connectCamera,
     disconnectCamera,
     listPorts,
     setConfig,
+    discoverWiznet,
+    configureWiznet,
   } = useBridge();
 
   const handleCommand = useCallback(
@@ -23,6 +28,18 @@ export default function App() {
       send('command', { cmd, params });
     },
     [send],
+  );
+
+  const handleSelectWiznet = useCallback(
+    (device: WiznetDevice) => {
+      // Auto-fill TCP connection with selected WIZ108SR device
+      setConfig({
+        connectionMode: 'tcp',
+        tcpHost: device.ip,
+        tcpPort: device.port,
+      });
+    },
+    [setConfig],
   );
 
   return (
@@ -42,6 +59,13 @@ export default function App() {
           onDisconnect={disconnectCamera}
           cameraConnected={cameraConnected}
           wsStatus={status}
+        />
+
+        <WiznetPanel
+          devices={wiznetDevices}
+          onDiscover={discoverWiznet}
+          onConfigure={configureWiznet}
+          onSelectDevice={handleSelectWiznet}
         />
 
         <RcpDashboard
