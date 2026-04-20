@@ -1,5 +1,6 @@
-import React from 'react';
-import type { WiznetDevice, BridgeConfig } from '../types.ts';
+import React, { useState } from 'react';
+import type { WiznetDevice } from '../types.ts';
+import { WiznetConfigWizard } from './WiznetConfigWizard.tsx';
 
 interface Props {
   devices: WiznetDevice[];
@@ -9,10 +10,12 @@ interface Props {
 }
 
 export function WiznetPanel({ devices, onDiscover, onConfigure, onSelectDevice }: Props) {
+  const [configuring, setConfiguring] = useState<WiznetDevice | null>(null);
+
   return (
     <div className="panel panel--wiznet">
       <div className="panel__header">
-        <h2 className="panel__title">WIZ108SR Devices</h2>
+        <h2 className="panel__title">WIZ108SR Adapter</h2>
         <button className="btn btn--sm" onClick={onDiscover} title="Netzwerk scannen">
           Scan
         </button>
@@ -38,6 +41,13 @@ export function WiznetPanel({ devices, onDiscover, onConfigure, onSelectDevice }
               </div>
               <div className="wiznet-card__actions">
                 <button
+                  className="btn btn--sm"
+                  onClick={() => setConfiguring(d)}
+                  title="Gerät konfigurieren"
+                >
+                  Einstellungen
+                </button>
+                <button
                   className="btn btn--primary btn--sm"
                   onClick={() => onSelectDevice(d)}
                   title="Dieses Gerät als TCP-Ziel verwenden"
@@ -48,6 +58,17 @@ export function WiznetPanel({ devices, onDiscover, onConfigure, onSelectDevice }
             </div>
           ))}
         </div>
+      )}
+
+      {configuring && (
+        <WiznetConfigWizard
+          device={configuring}
+          onClose={() => setConfiguring(null)}
+          onConfigure={(ip, cfg) => {
+            onConfigure(ip, cfg);
+            setConfiguring(null);
+          }}
+        />
       )}
     </div>
   );

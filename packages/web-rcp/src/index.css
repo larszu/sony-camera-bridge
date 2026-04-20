@@ -382,3 +382,253 @@ body {
   display: flex;
   gap: 6px;
 }
+
+/* ─── Config Wizard Overlay ───────────────────────────────────────────────── */
+
+.wizard-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.wizard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.wizard__header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wizard__header h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: var(--text);
+}
+
+.wizard__device {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Progress steps */
+.wizard__progress {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.wizard__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.wizard__step-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  transition: all 0.2s;
+}
+
+.wizard__step--active .wizard__step-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+}
+
+.wizard__step--done .wizard__step-dot {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+
+.wizard__step-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.wizard__step--active .wizard__step-label {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Content area */
+.wizard__content {
+  padding: 20px;
+  min-height: 200px;
+}
+
+.wizard__section h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.wizard__hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.wizard__hint strong {
+  color: var(--text);
+}
+
+/* Mode selection buttons */
+.wizard__mode-select {
+  display: flex;
+  gap: 12px;
+}
+
+.wizard__mode-btn {
+  flex: 1;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.wizard__mode-btn:hover {
+  border-color: var(--accent);
+}
+
+.wizard__mode-btn--active {
+  border-color: var(--accent);
+  background: rgba(0, 180, 216, 0.1);
+}
+
+.wizard__mode-icon {
+  font-size: 28px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.wizard__mode-title {
+  display: block;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.wizard__mode-desc {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Form fields */
+.wizard__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.wizard__field > span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.wizard__field input[type="text"],
+.wizard__field input[type="number"],
+.wizard__field select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.wizard__field input:focus,
+.wizard__field select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.wizard__field input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+}
+
+.wizard__field:has(input[type="checkbox"]) {
+  flex-direction: row;
+  align-items: center;
+}
+
+/* Summary */
+.wizard__summary {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.wizard__summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.wizard__summary-row:last-child {
+  border-bottom: none;
+}
+
+.wizard__summary-row span {
+  color: var(--text-muted);
+}
+
+.wizard__summary-row strong {
+  color: var(--text);
+}
+
+/* Footer */
+.wizard__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.wizard__nav {
+  display: flex;
+  gap: 8px;
+}
