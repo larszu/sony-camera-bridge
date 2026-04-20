@@ -1,0 +1,316 @@
+/* Sony Camera RCP Dashboard — dark broadcast-style theme */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1a1a1e;
+  --surface: #252529;
+  --surface2: #2f2f35;
+  --border: #3a3a42;
+  --text: #e8e8f0;
+  --text-muted: #888898;
+  --accent: #4a9eff;
+  --danger: #e84343;
+  --success: #2ecc71;
+  --warning: #f39c12;
+  --radius: 6px;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 13px;
+}
+
+/* ─── App Layout ──────────────────────────────────────────────────────────── */
+
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+
+.app__header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.app__logo { font-weight: 700; font-size: 15px; letter-spacing: 0.5px; }
+
+.app__error {
+  background: #5a1a1a;
+  color: #ff8888;
+  padding: 4px 10px;
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+
+.app__main {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ─── Panel ───────────────────────────────────────────────────────────────── */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.panel__title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* ─── Connection Panel ────────────────────────────────────────────────────── */
+
+.mode-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 12px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.mode-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+.mode-tab:hover { color: var(--text); }
+.mode-tab--active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.serial-port-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.serial-port-row select { flex: 1; }
+
+.btn--sm {
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+}
+.btn--sm:hover { border-color: var(--accent); }
+
+.connection-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 140px;
+}
+
+.field--sm { flex: 0 0 90px; min-width: 80px; }
+
+.field label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.field input, .select-group__select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  font-size: 13px;
+  width: 100%;
+}
+
+.field input:focus, .select-group__select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.connection-actions { display: flex; gap: 8px; margin-bottom: 10px; }
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ml-16 { margin-left: 16px; }
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.status-dot--ok { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.status-dot--err { background: var(--border); }
+
+/* ─── Buttons ─────────────────────────────────────────────────────────────── */
+
+.btn {
+  padding: 7px 16px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.85; }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn--primary { background: var(--accent); color: #fff; }
+.btn--danger { background: var(--danger); color: #fff; }
+
+/* ─── RCP Dashboard ───────────────────────────────────────────────────────── */
+
+.rcp { display: flex; flex-direction: column; gap: 12px; }
+
+.rcp__row--top {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.rcp__section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.rcp__section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.rcp__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+/* ─── Dial ────────────────────────────────────────────────────────────────── */
+
+.dial {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dial__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.dial__value {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.dial__unit { font-size: 11px; color: var(--text-muted); }
+
+.dial__slider {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.dial__slider:disabled { opacity: 0.4; cursor: default; }
+
+.dial__pct {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* ─── Toggle ──────────────────────────────────────────────────────────────── */
+
+.toggle {
+  padding: 8px 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 100px;
+  text-align: center;
+  transition: background 0.15s, color 0.15s;
+}
+.toggle:hover { border-color: var(--accent); }
+.toggle:disabled { opacity: 0.4; cursor: default; }
+
+/* ─── Select ──────────────────────────────────────────────────────────────── */
+
+.select-group {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.select-group__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.select-group__select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  font-size: 13px;
+}

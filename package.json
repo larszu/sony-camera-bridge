@@ -1,0 +1,13 @@
+{
+  "name": "sony-camera-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "bridge": "npm run dev --workspace=packages/bridge",
+    "web": "npm run dev --workspace=packages/web-rcp",
+    "dev": "npm run bridge & npm run web"
+  }
+}
