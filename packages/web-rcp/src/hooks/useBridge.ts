@@ -33,7 +33,8 @@ interface StateResponseMessage {
   cameraNumber?: number;
 }
 
-const WS_URL = `ws://${window.location.hostname}:9700`;
+const bridgeHost = window.location.hostname || 'localhost';
+const WS_URL = `ws://${bridgeHost}:9700`;
 
 export function useBridge(): UseBridgeReturn {
   const ws = useRef<WebSocket | null>(null);
@@ -50,7 +51,14 @@ export function useBridge(): UseBridgeReturn {
   const connect = useCallback(() => {
     if (ws.current?.readyState === WebSocket.OPEN) return;
     setStatus('connecting');
-    const socket = new WebSocket(WS_URL);
+    let socket: WebSocket;
+    try {
+      socket = new WebSocket(WS_URL);
+    } catch {
+      setStatus('error');
+      setErrorMsg(`WebSocket connection failed: ${WS_URL}`);
+      return;
+    }
 
     socket.onopen = () => {
       setStatus('connected');

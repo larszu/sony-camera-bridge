@@ -8,7 +8,6 @@ directories:
 
 files:
   - dist/**/*
-  - launcher/**/*
   - assets/**/*
   - node_modules/**/*
   - package.json
@@ -37,8 +36,6 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: Sony Camera Bridge
   runAfterFinish: true
-  installerSidebar: assets/installer-sidebar.bmp
-  license: ../../LICENSE
 
 mac:
   target:

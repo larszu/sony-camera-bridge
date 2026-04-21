@@ -2,7 +2,7 @@
   "name": "@sony-camera-bridge/electron-app",
   "version": "1.0.0",
   "private": true,
-  "description": "Sony Camera Bridge – Desktop Launcher",
+  "description": "Sony Camera Bridge – Desktop UI",
   "author": "Sony Camera Bridge",
   "main": "dist/main.js",
   "scripts": {
@@ -11,15 +11,12 @@
     "dist": "npm run build && electron-builder",
     "dist:win": "npm run build && electron-builder --win"
   },
-  "dependencies": {
-    "serve-static": "^1.16.2",
-    "finalhandler": "^1.3.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/finalhandler": "^1.2.3",
     "@types/node": "^22.0.0",
     "@types/serve-static": "^1.15.7",
-    "electron": "^34.0.0",
+    "electron": "34.5.8",
     "electron-builder": "^25.1.8",
     "typescript": "^5.6.0"
   }
