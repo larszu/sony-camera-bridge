@@ -1,5 +1,5 @@
 /**
- * WebSocket hook for Sony Camera Bridge
+ * WebSocket hook for Camera Bridge
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';

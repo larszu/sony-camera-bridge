@@ -130,6 +130,16 @@
   color: #000;
 }
 
+.rcp-btn--primary {
+  background: var(--rcp-blue);
+  border-color: #0077dd;
+  color: #fff;
+}
+
+.rcp-btn--primary:hover {
+  background: #0099ff;
+}
+
 .rcp-btn--green:hover {
   background: #00dd55;
 }

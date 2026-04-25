@@ -1,5 +1,5 @@
-appId: com.sonycamerabridge.app
-productName: Sony Camera Bridge
+appId: com.camerabridge.app
+productName: Camera Bridge
 copyright: Copyright © 2026
 
 directories:
@@ -34,7 +34,7 @@ nsis:
   installerHeaderIcon: assets/icon.ico
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Sony Camera Bridge
+  shortcutName: Camera Bridge
   runAfterFinish: true
 
 mac:

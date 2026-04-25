@@ -30,7 +30,7 @@ function createMainWindow(): void {
     backgroundColor: '#101214',
     autoHideMenuBar: true,
     show: false,
-    title: 'Sony Camera Bridge',
+    title: 'Camera Bridge',
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

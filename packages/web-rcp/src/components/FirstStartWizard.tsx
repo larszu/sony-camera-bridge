@@ -57,7 +57,7 @@ export function FirstStartWizard({ onComplete }: Props) {
         <div className="wizard-header">
           <div className="wizard-logo">
             <span className="wizard-logo-icon">◎</span>
-            <span className="wizard-logo-text">Sony Camera Bridge</span>
+            <span className="wizard-logo-text">Camera Bridge</span>
           </div>
           <div className="wizard-steps">
             {STEPS.map((s, i) => (
@@ -121,7 +121,7 @@ function StepWelcome() {
     <div className="wizard-step">
       <h2 className="wizard-step__title">Willkommen</h2>
       <p className="wizard-step__desc">
-        <strong>Sony Camera Bridge</strong> verbindet Sony CCU-Kameras (BRC, HXC, HDC…)
+        <strong>Camera Bridge</strong> verbindet Sony CCU-Kameras (BRC, HXC, HDC…)
         und Panasonic Lumix Kameras mit Bitfocus Companion und steuert sie über
         einen professionellen Software-RCP.
       </p>

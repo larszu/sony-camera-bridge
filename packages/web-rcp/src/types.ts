@@ -58,18 +58,47 @@ export type CameraProtocol =
   | 'sony-700spp'      // Sony 700 Protocol over Serial/RS-422
   | 'sony-crsdk'       // Sony Camera Remote SDK (USB/WiFi) - FX3, FX6, A7 etc.
   | 'sony-mnc'         // Sony Monitor & Control App Protocol (WiFi)
+  | 'lumix-http'       // Panasonic Lumix HTTP CGI (WiFi/LAN)
   | 'blackmagic-rest'  // Blackmagic REST API (Ethernet/WiFi)
   | 'blackmagic-sdi'   // Blackmagic SDI Camera Control (via ATEM)
   | 'manual';          // Manual/demo mode
 
-export type CameraType = 'sony' | 'blackmagic';
+export type CameraType = 'sony' | 'lumix' | 'blackmagic';
 
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+
+export interface CameraCapabilities {
+  call?: boolean;
+  bars?: boolean;
+  colorTemp?: boolean;
+  character?: boolean;
+  masterGain?: boolean;
+  awb?: boolean;
+  abb?: boolean;
+  whiteBalance?: boolean;
+  blackBalance?: boolean;
+  masterBlack?: boolean;
+  masterGamma?: boolean;
+  autoIris?: boolean;
+  iris?: boolean;
+  ndFilter?: boolean;
+  cc?: boolean;
+  tallyProgram?: boolean;
+  tallyPreview?: boolean;
+  record?: boolean;
+  iso?: boolean;
+  shutter?: boolean;
+  focus?: boolean;
+  contrast?: boolean;
+  saturation?: boolean;
+  resetCc?: boolean;
+}
 
 export interface CameraConnection {
   id: string;
   name: string;
   cameraNumber: number;
+  type: CameraType;
   protocol: CameraProtocol;
   status: ConnectionStatus;
   error?: string;
@@ -95,6 +124,7 @@ export interface CameraConnection {
   // Current state
   state: CameraState;
   tally: TallyState;
+  capabilities: CameraCapabilities;
 }
 
 export interface DashboardState {

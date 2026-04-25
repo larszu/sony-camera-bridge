@@ -2,12 +2,28 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { SonyRcpPanel } from './SonyRcpPanel.tsx';
 import { BlackmagicRcpPanel } from './BlackmagicRcpPanel.tsx';
 import { CameraConfigPanel } from './CameraConfigPanel.tsx';
-import type { CameraConnection, TallyState, CameraState, DashboardState, CameraStatesByNumber } from '../types.ts';
+import type {
+  CameraCapabilities,
+  CameraConnection,
+  CameraProtocol,
+  CameraType,
+  TallyState,
+  CameraState,
+  DashboardState,
+  CameraStatesByNumber,
+} from '../types.ts';
+import type { CameraSetupDraft } from './CameraConfigPanel.tsx';
 
-// Generate unique ID
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
-// Default camera state
+const BRIDGE_PROTOCOLS = new Set<CameraProtocol>([
+  'sony-700ptp',
+  'sony-700spp',
+  'sony-crsdk',
+  'sony-mnc',
+  'lumix-http',
+]);
+
 const defaultCameraState: CameraState = {
   iris: 128,
   masterBlack: 128,
@@ -27,27 +43,176 @@ const defaultCameraState: CameraState = {
   detailLevel: 128,
 };
 
-// Default tally state
 const defaultTallyState: TallyState = {
   program: false,
   preview: false,
   isoRec: false,
 };
 
-// Create a new camera connection
-function createCamera(cameraNumber: number, type: 'sony' | 'blackmagic' = 'sony'): CameraConnection {
+const ALL_CAPABILITIES_ENABLED: CameraCapabilities = {
+  call: true,
+  bars: true,
+  colorTemp: true,
+  character: true,
+  masterGain: true,
+  awb: true,
+  abb: true,
+  whiteBalance: true,
+  blackBalance: true,
+  masterBlack: true,
+  masterGamma: true,
+  autoIris: true,
+  iris: true,
+  ndFilter: true,
+  cc: true,
+  tallyProgram: true,
+  tallyPreview: true,
+  record: true,
+  iso: true,
+  shutter: true,
+  focus: true,
+  contrast: true,
+  saturation: true,
+  resetCc: true,
+};
+
+const PROTOCOL_CAPABILITY_OVERRIDES: Partial<Record<CameraProtocol, Partial<CameraCapabilities>>> = {
+  'sony-700ptp': {
+    record: false,
+    iso: false,
+    shutter: false,
+    focus: false,
+    contrast: false,
+    resetCc: false,
+  },
+  'sony-700spp': {
+    record: false,
+    iso: false,
+    shutter: false,
+    focus: false,
+    contrast: false,
+    resetCc: false,
+  },
+  'sony-crsdk': {
+    bars: false,
+    character: false,
+    blackBalance: false,
+    masterBlack: false,
+    masterGamma: false,
+    ndFilter: false,
+    cc: false,
+    contrast: false,
+    resetCc: false,
+  },
+  'sony-mnc': {
+    bars: false,
+    call: false,
+    character: false,
+    abb: false,
+    blackBalance: false,
+    masterBlack: false,
+    masterGamma: false,
+    ndFilter: false,
+    cc: false,
+    contrast: false,
+    resetCc: false,
+  },
+  'lumix-http': {
+    call: false,
+    bars: false,
+    character: false,
+    abb: false,
+    blackBalance: false,
+    masterBlack: false,
+    masterGamma: false,
+    autoIris: false,
+    ndFilter: false,
+    cc: false,
+    record: false,
+    contrast: false,
+    resetCc: false,
+  },
+  'blackmagic-rest': {
+    call: false,
+    bars: false,
+    character: false,
+    awb: true,
+    abb: false,
+    autoIris: false,
+    ndFilter: false,
+    cc: false,
+    tallyPreview: false,
+    colorTemp: false,
+  },
+  'blackmagic-sdi': {
+    call: false,
+    bars: false,
+    character: false,
+    awb: true,
+    abb: false,
+    autoIris: false,
+    ndFilter: false,
+    cc: false,
+    tallyPreview: false,
+    colorTemp: false,
+  },
+  manual: {
+    call: false,
+    bars: false,
+    colorTemp: false,
+    character: false,
+    masterGain: false,
+    awb: false,
+    abb: false,
+    whiteBalance: false,
+    blackBalance: false,
+    masterBlack: false,
+    masterGamma: false,
+    autoIris: false,
+    iris: false,
+    ndFilter: false,
+    cc: false,
+    record: false,
+    iso: false,
+    shutter: false,
+    focus: false,
+    contrast: false,
+    saturation: false,
+    resetCc: false,
+  },
+};
+
+function protocolToType(protocol: CameraProtocol): CameraType {
+  if (protocol.startsWith('blackmagic')) return 'blackmagic';
+  if (protocol === 'lumix-http') return 'lumix';
+  return 'sony';
+}
+
+function defaultNameFor(type: CameraType, cameraNumber: number): string {
+  if (type === 'blackmagic') return `Blackmagic Camera ${cameraNumber}`;
+  if (type === 'lumix') return `Lumix Camera ${cameraNumber}`;
+  return `Sony Camera ${cameraNumber}`;
+}
+
+function capabilitiesForProtocol(protocol: CameraProtocol): CameraCapabilities {
+  return {
+    ...ALL_CAPABILITIES_ENABLED,
+    ...(PROTOCOL_CAPABILITY_OVERRIDES[protocol] ?? {}),
+  };
+}
+
+function createCameraFromDraft(draft: CameraSetupDraft): CameraConnection {
   return {
     id: generateId(),
-    name: `${type === 'blackmagic' ? 'BM' : 'Sony'} Camera ${cameraNumber}`,
-    cameraNumber,
-    protocol: type === 'blackmagic' ? 'blackmagic-rest' : 'sony-700ptp',
-    status: 'connected', // Default to connected for demo
-    settings: {
-      host: type === 'blackmagic' ? 'Pocket-Cinema-Camera-4K.local' : '192.168.1.100',
-      port: type === 'blackmagic' ? 80 : 7700,
-    },
+    name: draft.name,
+    cameraNumber: draft.cameraNumber,
+    type: draft.type,
+    protocol: draft.protocol,
+    status: 'disconnected',
+    settings: { ...draft.settings },
     state: { ...defaultCameraState },
     tally: { ...defaultTallyState },
+    capabilities: capabilitiesForProtocol(draft.protocol),
   };
 }
 
@@ -58,91 +223,105 @@ interface DashboardProps {
 }
 
 /**
- * Multi-RCP Dashboard
- * Manages multiple camera connections with individual settings
+ * Multi-camera RCP dashboard with unified camera setup flow.
  */
 export function Dashboard({ bridgeConnected = false, remoteCameraStates = {}, onSendCommand }: DashboardProps) {
-  const [state, setState] = useState<DashboardState>(() => ({
-    cameras: [createCamera(1)],
-    selectedCameraId: null,
-    companionEnabled: true,
-    companionPort: 9702,
-  }));
+  const [state, setState] = useState<DashboardState>(() => {
+    const firstDraft: CameraSetupDraft = {
+      name: defaultNameFor('sony', 1),
+      cameraNumber: 1,
+      type: 'sony',
+      protocol: 'sony-700ptp',
+      settings: { host: '192.168.1.100', port: 7700, serialPath: 'COM3', baudRate: 38400, parity: 'odd' },
+    };
+
+    return {
+      cameras: [createCameraFromDraft(firstDraft)],
+      selectedCameraId: null,
+      companionEnabled: true,
+      companionPort: 9702,
+    };
+  });
 
   const [showConfig, setShowConfig] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
   useEffect(() => {
     setState((prev) => ({
       ...prev,
-      cameras: prev.cameras.map((camera) => ({
-        ...camera,
-        status: bridgeConnected ? 'connected' : camera.status,
-        state: {
-          ...camera.state,
-          ...(remoteCameraStates[camera.cameraNumber] ?? {}),
-        },
-      })),
+      cameras: prev.cameras.map((camera) => {
+        const hasRemoteState = Object.prototype.hasOwnProperty.call(remoteCameraStates, camera.cameraNumber);
+        let nextStatus = camera.status;
+
+        if (BRIDGE_PROTOCOLS.has(camera.protocol)) {
+          if (hasRemoteState) {
+            nextStatus = 'connected';
+          } else if (!bridgeConnected) {
+            nextStatus = camera.status === 'error' ? 'error' : 'disconnected';
+          } else if (camera.status !== 'connecting') {
+            // Bridge is reachable, but camera has not reported state yet.
+            nextStatus = 'disconnected';
+          }
+        }
+
+        return {
+          ...camera,
+          status: nextStatus,
+          state: {
+            ...camera.state,
+            ...(remoteCameraStates[camera.cameraNumber] ?? {}),
+          },
+        };
+      }),
     }));
   }, [bridgeConnected, remoteCameraStates]);
 
-  // Add a new Sony camera
-  const addSonyCamera = useCallback(() => {
-    setState(prev => {
-      const nextNumber = prev.cameras.length + 1;
-      const newCamera = createCamera(nextNumber, 'sony');
-      return {
-        ...prev,
-        cameras: [...prev.cameras, newCamera],
-      };
-    });
-  }, []);
+  const nextCameraNumber = state.cameras.length > 0
+    ? Math.max(...state.cameras.map((c) => c.cameraNumber)) + 1
+    : 1;
 
-  // Add a new Blackmagic camera
-  const addBlackmagicCamera = useCallback(() => {
-    setState(prev => {
-      const nextNumber = prev.cameras.length + 1;
-      const newCamera = createCamera(nextNumber, 'blackmagic');
-      return {
-        ...prev,
-        cameras: [...prev.cameras, newCamera],
-      };
-    });
-  }, []);
-
-  // Legacy addCamera for compatibility
-  const addCamera = addSonyCamera;
-
-  // Remove a camera
-  const removeCamera = useCallback((id: string) => {
-    setState(prev => ({
+  const addCamera = useCallback((draft: CameraSetupDraft) => {
+    setState((prev) => ({
       ...prev,
-      cameras: prev.cameras.filter(c => c.id !== id),
+      cameras: [...prev.cameras, createCameraFromDraft(draft)],
+    }));
+  }, []);
+
+  const removeCamera = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      cameras: prev.cameras.filter((c) => c.id !== id),
       selectedCameraId: prev.selectedCameraId === id ? null : prev.selectedCameraId,
     }));
   }, []);
 
-  // Update camera settings
   const updateCamera = useCallback((id: string, updates: Partial<CameraConnection>) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      cameras: prev.cameras.map(c => 
-        c.id === id ? { ...c, ...updates } : c
-      ),
+      cameras: prev.cameras.map((c) => {
+        if (c.id !== id) return c;
+
+        const nextProtocol = updates.protocol ?? c.protocol;
+        const nextType = updates.type ?? protocolToType(nextProtocol);
+
+        return {
+          ...c,
+          ...updates,
+          protocol: nextProtocol,
+          type: nextType,
+          capabilities: capabilitiesForProtocol(nextProtocol),
+        };
+      }),
     }));
   }, []);
 
-  // Handle camera command
   const handleCommand = useCallback((cameraId: string, cmd: string, params: Record<string, unknown>) => {
-    console.log(`[Camera ${cameraId}] ${cmd}`, params);
-    
-    // Update local state optimistically
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      cameras: prev.cameras.map(c => {
+      cameras: prev.cameras.map((c) => {
         if (c.id !== cameraId) return c;
-        
-        // Map commands to state updates
+
         const stateUpdates: Partial<CameraState> = {};
         switch (cmd) {
           case 'setIris':
@@ -164,6 +343,15 @@ export function Dashboard({ bridgeConnected = false, remoteCameraStates = {}, on
           case 'setMasterGain':
             stateUpdates.masterGain = params.value as number;
             break;
+          case 'setMasterGamma':
+            stateUpdates.masterGamma = params.value as number;
+            break;
+          case 'setSaturation':
+            stateUpdates.saturation = params.value as number;
+            break;
+          case 'setShutterSpeed':
+            stateUpdates.shutterSpeed = params.value as number;
+            break;
           case 'setNdFilter':
             stateUpdates.ndFilter = params.value as number;
             break;
@@ -171,59 +359,59 @@ export function Dashboard({ bridgeConnected = false, remoteCameraStates = {}, on
             stateUpdates.bars = params.on as boolean;
             break;
         }
-        
+
         return {
           ...c,
           state: { ...c.state, ...stateUpdates },
         };
       }),
     }));
-    
-    // Send to backend
-    const targetCamera = state.cameras.find((camera) => camera.id === cameraId)?.cameraNumber;
-    onSendCommand?.(String(targetCamera ?? cameraId), cmd, params);
-  }, [onSendCommand]);
 
-  // Handle tally change
+    const targetCamera = state.cameras.find((camera) => camera.id === cameraId);
+    if (!targetCamera) return;
+
+    // Keep local-only protocols local to avoid pretending unsupported backend functionality.
+    if (!BRIDGE_PROTOCOLS.has(targetCamera.protocol)) {
+      return;
+    }
+
+    onSendCommand?.(String(targetCamera.cameraNumber), cmd, params);
+  }, [onSendCommand, state.cameras]);
+
   const handleSetTally = useCallback((cameraId: string, tally: Partial<TallyState>) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      cameras: prev.cameras.map(c => 
-        c.id === cameraId 
+      cameras: prev.cameras.map((c) =>
+        c.id === cameraId
           ? { ...c, tally: { ...c.tally, ...tally } }
-          : c
+          : c,
       ),
     }));
   }, []);
 
-  // Connect/disconnect camera
   const toggleConnection = useCallback((cameraId: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      cameras: prev.cameras.map(c => {
+      cameras: prev.cameras.map((c) => {
         if (c.id !== cameraId) return c;
-        if (c.status === 'connected') {
-          return { ...c, status: 'disconnected' };
-        } else {
-          return { ...c, status: 'connecting' };
-        }
+        if (c.status === 'connected') return { ...c, status: 'disconnected' };
+        if (c.status === 'disconnected') return { ...c, status: 'connecting' };
+        return c;
       }),
     }));
-    
-    // Simulate connection
+
     setTimeout(() => {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
-        cameras: prev.cameras.map(c => 
-          c.id === cameraId && c.status === 'connecting'
+        cameras: prev.cameras.map((c) =>
+          c.id === cameraId && c.status === 'connecting' && !BRIDGE_PROTOCOLS.has(c.protocol)
             ? { ...c, status: 'connected' }
-            : c
+            : c,
         ),
       }));
-    }, 1000);
+    }, 700);
   }, []);
 
-  // Drag and drop handlers for reordering
   const handleDragStart = useCallback((e: React.DragEvent, cameraId: string) => {
     setDraggedId(cameraId);
     e.dataTransfer.effectAllowed = 'move';
@@ -238,20 +426,17 @@ export function Dashboard({ bridgeConnected = false, remoteCameraStates = {}, on
     e.preventDefault();
     if (!draggedId || draggedId === targetId) return;
 
-    setState(prev => {
+    setState((prev) => {
       const cameras = [...prev.cameras];
-      const draggedIndex = cameras.findIndex(c => c.id === draggedId);
-      const targetIndex = cameras.findIndex(c => c.id === targetId);
-      
+      const draggedIndex = cameras.findIndex((c) => c.id === draggedId);
+      const targetIndex = cameras.findIndex((c) => c.id === targetId);
       if (draggedIndex === -1 || targetIndex === -1) return prev;
-      
-      // Swap positions
+
       const [draggedCamera] = cameras.splice(draggedIndex, 1);
       cameras.splice(targetIndex, 0, draggedCamera);
-      
       return { ...prev, cameras };
     });
-    
+
     setDraggedId(null);
   }, [draggedId]);
 
@@ -259,36 +444,30 @@ export function Dashboard({ bridgeConnected = false, remoteCameraStates = {}, on
     setDraggedId(null);
   }, []);
 
-  // Check if camera is Blackmagic type
-  const isBlackmagicCamera = (camera: CameraConnection) => 
+  const isBlackmagicCamera = (camera: CameraConnection) =>
     camera.protocol === 'blackmagic-rest' || camera.protocol === 'blackmagic-sdi';
 
   return (
     <div className="dashboard">
-      {/* Header */}
       <div className="dashboard__header">
         <div className="dashboard__title">
           <span>📹</span>
-          <span>Multi-Camera RCP Dashboard</span>
+          <span>Camera Bridge Dashboard</span>
         </div>
         <div className="dashboard__actions">
-          <button className="rcp-btn rcp-btn--sony" onClick={addSonyCamera}>
-            + Sony Camera
-          </button>
-          <button className="rcp-btn rcp-btn--blackmagic" onClick={addBlackmagicCamera}>
-            + Blackmagic Camera
+          <button className="rcp-btn rcp-btn--primary" onClick={() => setShowCreate(true)}>
+            + Add Camera
           </button>
         </div>
       </div>
 
       <div className="dashboard__body">
-        {/* Sidebar - Camera List */}
         <div className="dashboard__sidebar">
           <div className="dashboard__sidebar-header">
             Cameras ({state.cameras.length})
           </div>
           <div className="dashboard__camera-list">
-            {state.cameras.map(camera => (
+            {state.cameras.map((camera) => (
               <div
                 key={camera.id}
                 className={`camera-card ${
@@ -298,11 +477,9 @@ export function Dashboard({ bridgeConnected = false, remoteCameraStates = {}, on
                 } ${
                   camera.status === 'error' ? 'camera-card--error' : ''
                 }`}
-                onClick={() => setState(prev => ({ ...prev, selectedCameraId: camera.id }))}
+                onClick={() => setState((prev) => ({ ...prev, selectedCameraId: camera.id }))}
               >
-                <div className="camera-card__icon">
-                  {camera.cameraNumber}
-                </div>
+                <div className="camera-card__icon">{camera.cameraNumber}</div>
                 <div className="camera-card__info">
                   <div className="camera-card__name">{camera.name}</div>
                   <div className={`camera-card__status camera-card__status--${camera.status}`}>
@@ -312,7 +489,7 @@ export function Dashboard({ bridgeConnected = false, remoteCameraStates = {}, on
                     {camera.status === 'error' && `● ${camera.error || 'Error'}`}
                   </div>
                 </div>
-                <button 
+                <button
                   className="rcp-btn rcp-btn--sm"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -324,27 +501,22 @@ export function Dashboard({ bridgeConnected = false, remoteCameraStates = {}, on
               </div>
             ))}
           </div>
-          <button className="add-camera-btn add-camera-btn--sony" onClick={addSonyCamera}>
+          <button className="add-camera-btn" onClick={() => setShowCreate(true)}>
             <span>+</span>
-            <span>Add Sony Camera</span>
-          </button>
-          <button className="add-camera-btn add-camera-btn--blackmagic" onClick={addBlackmagicCamera}>
-            <span>+</span>
-            <span>Add Blackmagic Camera</span>
+            <span>Add Camera</span>
           </button>
         </div>
 
-        {/* Main Area - RCP Panels (Draggable Grid) */}
         <div className="dashboard__main dashboard__main--grid">
-          {state.cameras.map(camera => (
-            <div 
-              key={camera.id} 
+          {state.cameras.map((camera) => (
+            <div
+              key={camera.id}
               className={`dashboard__rcp-wrapper ${draggedId === camera.id ? 'dashboard__rcp-wrapper--dragging' : ''} ${isBlackmagicCamera(camera) ? 'dashboard__rcp-wrapper--blackmagic' : 'dashboard__rcp-wrapper--sony'}`}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, camera.id)}
             >
-              <div 
-                className="dashboard__rcp-drag-handle" 
+              <div
+                className="dashboard__rcp-drag-handle"
                 title="Drag to reorder"
                 draggable
                 onDragStart={(e) => handleDragStart(e, camera.id)}
@@ -357,7 +529,8 @@ export function Dashboard({ bridgeConnected = false, remoteCameraStates = {}, on
                   state={camera.state}
                   tally={camera.tally}
                   cameraId={camera.cameraNumber}
-                  disabled={false}
+                  disabled={camera.status !== 'connected'}
+                  capabilities={camera.capabilities}
                   onCommand={(cmd, params) => handleCommand(camera.id, cmd, params)}
                   onSetTally={(tally) => handleSetTally(camera.id, tally)}
                 />
@@ -366,7 +539,8 @@ export function Dashboard({ bridgeConnected = false, remoteCameraStates = {}, on
                   state={camera.state}
                   tally={camera.tally}
                   cameraId={camera.cameraNumber}
-                  disabled={false}
+                  disabled={camera.status !== 'connected'}
+                  capabilities={camera.capabilities}
                   onCommand={(cmd, params) => handleCommand(camera.id, cmd, params)}
                   onSetTally={(tally) => handleSetTally(camera.id, tally)}
                 />
@@ -385,10 +559,19 @@ export function Dashboard({ bridgeConnected = false, remoteCameraStates = {}, on
         </div>
       </div>
 
-      {/* Camera Config Modal */}
+      {showCreate && (
+        <CameraConfigPanel
+          mode="create"
+          initialCameraNumber={nextCameraNumber}
+          onCreate={addCamera}
+          onClose={() => setShowCreate(false)}
+        />
+      )}
+
       {showConfig && (
         <CameraConfigPanel
-          camera={state.cameras.find(c => c.id === showConfig)!}
+          mode="edit"
+          camera={state.cameras.find((c) => c.id === showConfig)}
           onUpdate={(updates) => updateCamera(showConfig, updates)}
           onDelete={() => {
             removeCamera(showConfig);

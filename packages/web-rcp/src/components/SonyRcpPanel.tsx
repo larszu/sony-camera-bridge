@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { TallyState } from './TallyBar.tsx';
 import { RotaryKnob } from './RotaryKnob.tsx';
-import type { CameraState } from '../types.ts';
+import type { CameraCapabilities, CameraState } from '../types.ts';
 
 interface SonyRcpPanelProps {
   state: CameraState;
   tally: TallyState;
   cameraId?: number;
   disabled?: boolean;
+  capabilities?: CameraCapabilities;
   onCommand: (cmd: string, params: Record<string, unknown>) => void;
   onSetTally: (tally: Partial<TallyState>) => void;
 }
@@ -82,9 +83,10 @@ function RcpButton({ label, active, variant, onClick, disabled }: {
 /**
  * Software-style RCP Panel
  */
-export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onCommand, onSetTally }: SonyRcpPanelProps) {
+export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, capabilities, onCommand, onSetTally }: SonyRcpPanelProps) {
   const [autoIris, setAutoIris] = useState(false);
   const cmd = (c: string, params: Record<string, unknown> = {}) => onCommand(c, params);
+  const can = (feature: keyof CameraCapabilities): boolean => !disabled && (capabilities?.[feature] ?? true);
   
   // Convert values to display format
   const gainIdx = state.masterGain ?? 0;
@@ -106,8 +108,8 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
           <span className="rcp-camera-id">{String(cameraId).padStart(2, '0')}</span>
         </div>
         <div className="rcp-topbar__right">
-          <RcpButton label="ACTIVE" active={tally.program} variant="green" onClick={() => onSetTally({ program: !tally.program })} />
-          <RcpButton label="CALL" onClick={() => cmd('call')} />
+          <RcpButton label="ACTIVE" active={tally.program} variant="green" onClick={() => onSetTally({ program: !tally.program })} disabled={!can('tallyProgram')} />
+          <RcpButton label="CALL" onClick={() => cmd('call')} disabled={!can('call')} />
         </div>
       </div>
 
@@ -118,10 +120,10 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
 
       {/* ═══════ FUNCTION BUTTONS ═══════ */}
       <div className="rcp-row rcp-row--functions">
-        <RcpButton label="BARS" active={state.bars} onClick={() => cmd('setBars', { on: !(state.bars ?? false) })} disabled={disabled} />
-        <RcpButton label="CLOSE" onClick={() => cmd('close')} disabled={disabled} />
-        <RcpButton label="D5600K" onClick={() => cmd('setColorTemp', { value: 5600 })} disabled={disabled} />
-        <RcpButton label="CHARACTER" onClick={() => cmd('toggleCharacter')} disabled={disabled} />
+        <RcpButton label="BARS" active={state.bars} onClick={() => cmd('setBars', { on: !(state.bars ?? false) })} disabled={!can('bars')} />
+        <RcpButton label="CLOSE" onClick={() => cmd('close')} disabled={!can('call')} />
+        <RcpButton label="D5600K" onClick={() => cmd('setColorTemp', { value: 5600 })} disabled={!can('colorTemp')} />
+        <RcpButton label="CHARACTER" onClick={() => cmd('toggleCharacter')} disabled={!can('character')} />
       </div>
 
       {/* ═══════ GAIN ROW ═══════ */}
@@ -130,11 +132,11 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
           value={GAIN_VALUES[gainIdx] ?? '0dB'} 
           label="MASTER GAIN"
           onChange={(d) => cmd('setMasterGain', { value: Math.max(0, Math.min(6, gainIdx + d)) })}
-          disabled={disabled}
+          disabled={!can('masterGain')}
         />
         <div className="rcp-row__spacer" />
-        <RcpButton label="AWB" onClick={() => cmd('autoWhiteBalance', { preset: 'A' })} disabled={disabled} />
-        <RcpButton label="ABB" onClick={() => cmd('autoBlackBalance')} disabled={disabled} />
+        <RcpButton label="AWB" onClick={() => cmd('autoWhiteBalance', { preset: 'A' })} disabled={!can('awb')} />
+        <RcpButton label="ABB" onClick={() => cmd('autoBlackBalance')} disabled={!can('abb')} />
       </div>
 
       {/* ═══════ WHITE SECTION with Rotary Knobs ═══════ */}
@@ -151,7 +153,7 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
             max={255}
             detent={128}
             onChange={(v) => cmd('setWhiteBalance', { r: v, g: state.whiteG ?? 128, b: state.whiteB ?? 128 })}
-            disabled={disabled}
+            disabled={!can('whiteBalance')}
             size="md"
             color="red"
             editable
@@ -163,7 +165,7 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
             max={255}
             detent={128}
             onChange={(v) => cmd('setWhiteBalance', { r: state.whiteR ?? 128, g: v, b: state.whiteB ?? 128 })}
-            disabled={disabled}
+            disabled={!can('whiteBalance')}
             size="md"
             color="green"
             editable
@@ -175,7 +177,7 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
             max={255}
             detent={128}
             onChange={(v) => cmd('setWhiteBalance', { r: state.whiteR ?? 128, g: state.whiteG ?? 128, b: v })}
-            disabled={disabled}
+            disabled={!can('whiteBalance')}
             size="md"
             color="blue"
             editable
@@ -196,7 +198,7 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
             max={255}
             detent={128}
             onChange={(v) => cmd('setMasterBlack', { value: v })}
-            disabled={disabled}
+            disabled={!can('masterBlack')}
             size="md"
             editable
           />
@@ -207,7 +209,7 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
             max={255}
             detent={128}
             onChange={(v) => cmd('setBlackBalance', { r: v, g: state.blackG ?? 128, b: state.blackB ?? 128 })}
-            disabled={disabled}
+            disabled={!can('blackBalance')}
             size="sm"
             color="red"
             editable
@@ -219,7 +221,7 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
             max={255}
             detent={128}
             onChange={(v) => cmd('setBlackBalance', { r: state.blackR ?? 128, g: v, b: state.blackB ?? 128 })}
-            disabled={disabled}
+            disabled={!can('blackBalance')}
             size="sm"
             color="green"
             editable
@@ -231,7 +233,7 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
             max={255}
             detent={128}
             onChange={(v) => cmd('setBlackBalance', { r: state.blackR ?? 128, g: state.blackG ?? 128, b: v })}
-            disabled={disabled}
+            disabled={!can('blackBalance')}
             size="sm"
             color="blue"
             editable
@@ -250,7 +252,7 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
                 setAutoIris(e.target.checked);
                 cmd('setAutoIris', { on: e.target.checked });
               }}
-              disabled={disabled}
+              disabled={!can('autoIris')}
             />
             <span className="rcp-checkbox__label">AUTO IRIS</span>
           </label>
@@ -259,13 +261,13 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
               value={ND_VALUES[ndIdx] ?? '1'} 
               label="ND"
               onChange={(d) => cmd('setNdFilter', { value: Math.max(0, Math.min(3, ndIdx + d)) })}
-              disabled={disabled}
+              disabled={!can('ndFilter')}
             />
             <Selector 
               value={CC_VALUES[ccIdx] ?? 'A'} 
               label="CC"
               onChange={() => {}}
-              disabled={disabled}
+              disabled={!can('cc')}
             />
           </div>
         </div>
@@ -287,7 +289,7 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
                 max="255" 
                 value={state.iris ?? 128}
                 onChange={(e) => cmd('setIris', { value: parseInt(e.target.value) })}
-                disabled={disabled || autoIris}
+                disabled={!can('iris') || autoIris}
                 className="rcp-fader__input"
               />
               <div 
@@ -301,7 +303,7 @@ export function SonyRcpPanel({ state, tally, cameraId = 1, disabled = false, onC
 
       {/* ═══════ BOTTOM BAR ═══════ */}
       <div className="rcp-bottombar">
-        <RcpButton label="PREVIEW" active={tally.preview} onClick={() => onSetTally({ preview: !tally.preview })} />
+        <RcpButton label="PREVIEW" active={tally.preview} onClick={() => onSetTally({ preview: !tally.preview })} disabled={!can('tallyPreview')} />
         <div className="rcp-status-indicators">
           <span className="rcp-status rcp-status--out">OUT</span>
           <span className="rcp-status rcp-status--opt">OPT</span>

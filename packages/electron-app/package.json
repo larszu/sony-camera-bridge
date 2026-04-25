@@ -2,8 +2,8 @@
   "name": "@sony-camera-bridge/electron-app",
   "version": "1.0.0",
   "private": true,
-  "description": "Sony Camera Bridge – Desktop UI",
-  "author": "Sony Camera Bridge",
+  "description": "Camera Bridge – Desktop UI",
+  "author": "Camera Bridge",
   "main": "dist/main.js",
   "scripts": {
     "dev": "tsc && electron dist/main.js",

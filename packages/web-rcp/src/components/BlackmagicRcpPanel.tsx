@@ -22,13 +22,14 @@
 import React, { useState } from 'react';
 import { TallyState } from './TallyBar.tsx';
 import { RotaryKnob } from './RotaryKnob.tsx';
-import type { CameraState } from '../types.ts';
+import type { CameraCapabilities, CameraState } from '../types.ts';
 
 interface BlackmagicRcpPanelProps {
   state: CameraState;
   tally: TallyState;
   cameraId?: number;
   disabled?: boolean;
+  capabilities?: CameraCapabilities;
   onCommand: (cmd: string, params: Record<string, unknown>) => void;
   onSetTally: (tally: Partial<TallyState>) => void;
 }
@@ -133,6 +134,7 @@ export function BlackmagicRcpPanel({
   tally, 
   cameraId = 1, 
   disabled = false, 
+  capabilities,
   onCommand, 
   onSetTally 
 }: BlackmagicRcpPanelProps) {
@@ -142,6 +144,7 @@ export function BlackmagicRcpPanel({
   const [wbTint, setWbTint] = useState(0);
   
   const cmd = (c: string, params: Record<string, unknown> = {}) => onCommand(c, params);
+  const can = (feature: keyof CameraCapabilities): boolean => !disabled && (capabilities?.[feature] ?? true);
   
   // Calculate Blackmagic values from Sony state
   const liftLuma = sonyToLift(state.masterBlack ?? 128);
@@ -179,13 +182,15 @@ export function BlackmagicRcpPanel({
             onClick={() => {
               onSetTally({ isoRec: !tally.isoRec });
               sendBmCommand('/transports/0/record', { recording: !tally.isoRec });
-            }} 
+            }}
+            disabled={!can('record')}
           />
           <RcpButton 
             label="LIVE" 
             active={tally.program} 
             variant="green" 
-            onClick={() => onSetTally({ program: !tally.program })} 
+            onClick={() => onSetTally({ program: !tally.program })}
+            disabled={!can('tallyProgram')}
           />
         </div>
       </div>
@@ -207,7 +212,7 @@ export function BlackmagicRcpPanel({
             setIsoIdx(newIdx);
             sendBmCommand('/video/iso', { iso: parseInt(ISO_VALUES[newIdx]) });
           }}
-          disabled={disabled}
+          disabled={!can('iso')}
         />
         <Selector 
           value={SHUTTER_VALUES[shutterIdx]} 
@@ -218,10 +223,10 @@ export function BlackmagicRcpPanel({
             const angleValue = [4500, 9000, 18000, 27000, 36000][newIdx];
             sendBmCommand('/video/shutter', { shutterAngle: angleValue });
           }}
-          disabled={disabled}
+          disabled={!can('shutter')}
         />
         <div className="rcp-row__spacer" />
-        <RcpButton label="AWB" onClick={() => sendBmCommand('/video/whiteBalance/doAuto', {})} disabled={disabled} />
+        <RcpButton label="AWB" onClick={() => sendBmCommand('/video/whiteBalance/doAuto', {})} disabled={!can('awb')} />
       </div>
 
       {/* ═══════ WHITE BALANCE ROW ═══════ */}
@@ -240,7 +245,7 @@ export function BlackmagicRcpPanel({
                 setWbKelvin(preset.value);
                 sendBmCommand('/video/whiteBalance', { whiteBalance: preset.value });
               }}
-              disabled={disabled}
+              disabled={!can('whiteBalance')}
             />
           ))}
         </div>
@@ -272,7 +277,7 @@ export function BlackmagicRcpPanel({
                 blue: liftB
               });
             }}
-            disabled={disabled}
+            disabled={!can('masterBlack')}
             size="md"
             editable
             displayValue={liftLuma.toFixed(2)}
@@ -292,7 +297,7 @@ export function BlackmagicRcpPanel({
                 blue: liftB
               });
             }}
-            disabled={disabled}
+            disabled={!can('blackBalance')}
             size="sm"
             color="red"
             editable
@@ -313,7 +318,7 @@ export function BlackmagicRcpPanel({
                 blue: liftB
               });
             }}
-            disabled={disabled}
+            disabled={!can('blackBalance')}
             size="sm"
             color="green"
             editable
@@ -334,7 +339,7 @@ export function BlackmagicRcpPanel({
                 blue: sonyToLift(v)
               });
             }}
-            disabled={disabled}
+            disabled={!can('blackBalance')}
             size="sm"
             color="blue"
             editable
@@ -364,7 +369,7 @@ export function BlackmagicRcpPanel({
                 blue: 0
               });
             }}
-            disabled={disabled}
+            disabled={!can('masterGamma')}
             size="md"
             editable
             displayValue={gammaLuma.toFixed(2)}
@@ -383,7 +388,7 @@ export function BlackmagicRcpPanel({
                 blue: 0
               });
             }}
-            disabled={disabled}
+            disabled={!can('masterGamma')}
             size="sm"
             color="red"
             editable
@@ -402,7 +407,7 @@ export function BlackmagicRcpPanel({
                 blue: 0
               });
             }}
-            disabled={disabled}
+            disabled={!can('masterGamma')}
             size="sm"
             color="green"
             editable
@@ -421,7 +426,7 @@ export function BlackmagicRcpPanel({
                 blue: sonyToGamma(v)
               });
             }}
-            disabled={disabled}
+            disabled={!can('masterGamma')}
             size="sm"
             color="blue"
             editable
@@ -470,7 +475,7 @@ export function BlackmagicRcpPanel({
                 blue: gainB
               });
             }}
-            disabled={disabled}
+            disabled={!can('whiteBalance')}
             size="sm"
             color="red"
             editable
@@ -491,7 +496,7 @@ export function BlackmagicRcpPanel({
                 blue: gainB
               });
             }}
-            disabled={disabled}
+            disabled={!can('whiteBalance')}
             size="sm"
             color="green"
             editable
@@ -512,7 +517,7 @@ export function BlackmagicRcpPanel({
                 blue: sonyToGain(v)
               });
             }}
-            disabled={disabled}
+            disabled={!can('whiteBalance')}
             size="sm"
             color="blue"
             editable
@@ -524,8 +529,8 @@ export function BlackmagicRcpPanel({
       {/* ═══════ IRIS/FOCUS ROW ═══════ */}
       <div className="rcp-section rcp-section--iris">
         <div className="rcp-iris-left">
-          <RcpButton label="AF" variant="blue" onClick={() => sendBmCommand('/lens/focus/doAutoFocus', {})} disabled={disabled} />
-          <RcpButton label="AUTO" onClick={() => {}} disabled={disabled} />
+          <RcpButton label="AF" variant="blue" onClick={() => sendBmCommand('/lens/focus/doAutoFocus', {})} disabled={!can('focus')} />
+          <RcpButton label="AUTO" onClick={() => {}} disabled={!can('iris')} />
         </div>
         <div className="rcp-iris-center">
           <div className="rcp-iris-display">
@@ -549,7 +554,7 @@ export function BlackmagicRcpPanel({
                   cmd('setIris', { value: val });
                   sendBmCommand('/lens/iris', { normalised: val / 255 });
                 }}
-                disabled={disabled}
+                disabled={!can('iris')}
                 className="rcp-fader__input"
               />
               <div 
@@ -577,7 +582,7 @@ export function BlackmagicRcpPanel({
               const adjust = (v / 128); // 0-2 range
               sendBmCommand('/colorCorrection/contrast', { pivot: 0.5, adjust });
             }}
-            disabled={disabled}
+            disabled={!can('contrast')}
             size="sm"
             editable
           />
@@ -592,7 +597,7 @@ export function BlackmagicRcpPanel({
               const sat = v / 128; // 0-2 range
               sendBmCommand('/colorCorrection/color', { hue: 0, saturation: sat });
             }}
-            disabled={disabled}
+            disabled={!can('saturation')}
             size="sm"
             editable
           />
@@ -608,7 +613,7 @@ export function BlackmagicRcpPanel({
           sendBmCommand('/colorCorrection/offset', { red: 0, green: 0, blue: 0, luma: 0 });
           sendBmCommand('/colorCorrection/contrast', { pivot: 0.5, adjust: 1 });
           sendBmCommand('/colorCorrection/color', { hue: 0, saturation: 1 });
-        }} disabled={disabled} />
+        }} disabled={!can('resetCc')} />
         <div className="rcp-row__spacer" />
         <span className="rcp-status-text">REST API</span>
       </div>
