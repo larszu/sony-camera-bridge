@@ -4,14 +4,17 @@ import { ConnectionPanel } from './components/ConnectionPanel.tsx';
 import { SonyRcpPanel } from './components/SonyRcpPanel.tsx';
 import { WiznetPanel } from './components/WiznetPanel.tsx';
 import { Dashboard } from './components/Dashboard.tsx';
+import { FirstStartWizard, isWizardDone } from './components/FirstStartWizard.tsx';
 import type { CameraState, WiznetDevice } from './types.ts';
 import type { TallyState } from './components/TallyBar.tsx';
 import './styles/sony-rcp.css';
+import './styles/wizard.css';
 
 type AppMode = 'single' | 'dashboard';
 
 export default function App() {
   const [mode, setMode] = useState<AppMode>('dashboard');
+  const [showWizard, setShowWizard] = useState(!isWizardDone());
   
   const {
     status,
@@ -59,10 +62,19 @@ export default function App() {
     [setTally],
   );
 
+  const handleWizardComplete = useCallback(
+    (wizardConfig: Partial<typeof config>) => {
+      setConfig(wizardConfig);
+      setShowWizard(false);
+    },
+    [setConfig],
+  );
+
   // Dashboard mode - multi-camera RCP panels
   if (mode === 'dashboard') {
     return (
       <div className="app">
+        {showWizard && <FirstStartWizard onComplete={handleWizardComplete} />}
         <header className="app__header">
           <button 
             className="rcp-btn rcp-btn--secondary"
@@ -86,6 +98,7 @@ export default function App() {
   // Single camera mode - legacy layout
   return (
     <div className="app">
+      {showWizard && <FirstStartWizard onComplete={handleWizardComplete} />}
       <header className="app__header">
         <button 
           className="rcp-btn rcp-btn--primary"

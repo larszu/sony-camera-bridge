@@ -1,0 +1,405 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   FIRST START WIZARD – Sony Camera Bridge
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.wizard-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+
+.wizard-modal {
+  width: 580px;
+  max-width: 95vw;
+  max-height: 90vh;
+  background: #1c1c1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+.wizard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #2a2a2a;
+  background: #161618;
+}
+
+.wizard-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wizard-logo-icon {
+  font-size: 22px;
+  color: var(--rcp-blue, #0088ff);
+}
+
+.wizard-logo-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #ddd;
+  letter-spacing: 0.5px;
+}
+
+.wizard-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wizard-step-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  color: #666;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.wizard-step-dot.active {
+  background: var(--rcp-blue, #0088ff);
+  border-color: var(--rcp-blue, #0088ff);
+  color: #fff;
+}
+
+.wizard-step-dot.done {
+  background: #1a3a1a;
+  border-color: var(--rcp-green, #00cc44);
+  color: var(--rcp-green, #00cc44);
+}
+
+/* ── Body ──────────────────────────────────────────────────────────────── */
+.wizard-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 24px;
+}
+
+.wizard-step {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: wizardFadeIn 0.18s ease;
+}
+
+@keyframes wizardFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.wizard-step__title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #eee;
+  margin: 0;
+}
+
+.wizard-step__desc {
+  font-size: 14px;
+  color: #999;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.wizard-step__hint {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.6;
+  background: #1a1a1a;
+  border-left: 3px solid #333;
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin: 0;
+}
+
+.wizard-step__hint code {
+  background: #2a2a2a;
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--rcp-blue, #0088ff);
+  font-size: 12px;
+}
+
+/* ── Feature List (Step 0) ─────────────────────────────────────────────── */
+.wizard-feature-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wizard-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #222;
+  border: 1px solid #2e2e2e;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.wizard-feature__icon {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.wizard-feature__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ccc;
+}
+
+.wizard-feature__desc {
+  font-size: 12px;
+  color: #666;
+  margin-top: 2px;
+}
+
+/* ── Camera Type Cards (Step 1) ─────────────────────────────────────────── */
+.wizard-camera-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wizard-camera-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 14px 16px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+  width: 100%;
+}
+
+.wizard-camera-card:hover {
+  background: #282828;
+  border-color: #444;
+}
+
+.wizard-camera-card.selected {
+  border-color: var(--rcp-blue, #0088ff);
+  background: #131d2b;
+}
+
+.wizard-camera-card__radio {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.wizard-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #555;
+  transition: border-color 0.15s;
+  position: relative;
+}
+
+.wizard-radio.active {
+  border-color: var(--rcp-blue, #0088ff);
+}
+
+.wizard-radio.active::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  background: var(--rcp-blue, #0088ff);
+  border-radius: 50%;
+}
+
+.wizard-camera-card__body {
+  flex: 1;
+}
+
+.wizard-camera-card__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ccc;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wizard-camera-card__sub {
+  font-size: 12px;
+  color: #666;
+  margin-top: 3px;
+}
+
+.wizard-badge {
+  font-size: 10px;
+  font-weight: 600;
+  background: #0088ff22;
+  color: var(--rcp-blue, #0088ff);
+  border: 1px solid #0088ff44;
+  border-radius: 10px;
+  padding: 1px 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Connection Form (Step 2) ────────────────────────────────────────────── */
+.wizard-form {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wizard-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #888;
+  flex: 1;
+  min-width: 160px;
+}
+
+.wizard-label--small {
+  max-width: 120px;
+  flex: 0 0 120px;
+}
+
+.wizard-input {
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  color: #ddd;
+  font-size: 13px;
+  padding: 8px 10px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.wizard-input:focus {
+  border-color: var(--rcp-blue, #0088ff);
+}
+
+select.wizard-input {
+  cursor: pointer;
+}
+
+/* ── Done Step (Step 3) ──────────────────────────────────────────────────── */
+.wizard-step--done {
+  align-items: center;
+  text-align: center;
+  padding: 10px 0;
+}
+
+.wizard-done-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #1a3a1a;
+  border: 2px solid var(--rcp-green, #00cc44);
+  color: var(--rcp-green, #00cc44);
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wizard-summary {
+  background: #222;
+  border: 1px solid #2e2e2e;
+  border-radius: 8px;
+  padding: 12px 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.wizard-summary__row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.wizard-summary__row:last-child {
+  border-bottom: none;
+}
+
+.wizard-summary__key {
+  color: #666;
+}
+
+.wizard-summary__val {
+  color: #ccc;
+  font-weight: 500;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.wizard-footer {
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  border-top: 1px solid #2a2a2a;
+  background: #161618;
+  gap: 10px;
+}
+
+.wizard-btn {
+  padding: 9px 22px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.wizard-btn--primary {
+  background: var(--rcp-blue, #0088ff);
+  color: #fff;
+}
+
+.wizard-btn--primary:hover {
+  background: #0077ee;
+}
+
+.wizard-btn--secondary {
+  background: #2e2e2e;
+  color: #aaa;
+  border: 1px solid #3a3a3a;
+}
+
+.wizard-btn--secondary:hover {
+  background: #383838;
+  color: #ccc;
+}
+
+.wizard-btn--success {
+  background: var(--rcp-green, #00cc44);
+  color: #fff;
+}
+
+.wizard-btn--success:hover {
+  background: #00b33c;
+}
