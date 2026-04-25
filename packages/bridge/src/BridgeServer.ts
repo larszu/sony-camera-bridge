@@ -18,12 +18,13 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { createServer, IncomingMessage } from 'http';
 import { Rs422Transport } from './transport/Rs422Transport.js';
 import { CcuClient, CameraState } from './protocol/CcuClient.js';
+import { LumixClient } from './protocol/LumixClient.js';
 import { WiznetDiscovery, WiznetDevice, WiznetDeviceConfig } from './discovery/WiznetDiscovery.js';
 import { CompanionServer, TallyState } from './companion/CompanionServer.js';
 
 export interface BridgeConfig {
-  /** Connection mode: 'tcp' or 'serial' */
-  connectionMode?: 'tcp' | 'serial';
+  /** Connection mode: 'tcp', 'serial', or 'lumix-http' */
+  connectionMode?: 'tcp' | 'serial' | 'lumix-http';
   /** 700PTP TCP host */
   tcpHost?: string;
   /** 700PTP TCP port (default 7700) */
@@ -33,6 +34,10 @@ export interface BridgeConfig {
   /** Serial baud rate (default 38400) */
   baudRate?: number;
   ccuId?: number;
+  /** Lumix HTTP CGI: camera IP address */
+  lumixHost?: string;
+  /** Lumix HTTP CGI: port (default 80) */
+  lumixPort?: number;
 }
 
 interface ClientMessage {
@@ -49,6 +54,7 @@ export class BridgeServer {
   private wss: WebSocketServer;
   private httpServer: ReturnType<typeof createServer>;
   private ccuClient: CcuClient | null = null;
+  private lumixClient: LumixClient | null = null;
   private rs422: Rs422Transport | null = null;
   private wiznetDiscovery = new WiznetDiscovery();
   private companion = new CompanionServer();
@@ -62,6 +68,8 @@ export class BridgeServer {
     serialPath: '',
     baudRate: 38400,
     ccuId: 0,
+    lumixHost: '192.168.54.1',
+    lumixPort: 80,
   };
 
   constructor(private readonly wsPort = 9700) {
@@ -90,6 +98,7 @@ export class BridgeServer {
 
   stop(): void {
     this.ccuClient?.disconnect();
+    this.lumixClient?.disconnect();
     this.rs422?.close();
     this.companion.stop();
     this.wss.close();
@@ -153,6 +162,8 @@ export class BridgeServer {
       case 'connect':
         if (this.config.connectionMode === 'serial') {
           await this.connectSerial();
+        } else if (this.config.connectionMode === 'lumix-http') {
+          await this.connectLumix();
         } else {
           await this.connectTcp();
         }
@@ -237,6 +248,51 @@ export class BridgeServer {
       this.ccuClient.disconnect();
     }
     this.ccuClient = null;
+    if (this.lumixClient?.connected) {
+      this.lumixClient.disconnect();
+    }
+    this.lumixClient = null;
+  }
+
+  // ─── Lumix HTTP CGI connection ─────────────────────────────────────────
+
+  private async connectLumix(): Promise<void> {
+    this.disconnectCurrent();
+
+    this.lumixClient = new LumixClient({
+      host: this.config.lumixHost ?? '192.168.54.1',
+      port: this.config.lumixPort ?? 80,
+    });
+    this.wireLumixEvents();
+    await this.lumixClient.connect();
+  }
+
+  private wireLumixEvents(): void {
+    if (!this.lumixClient) return;
+    const camNum = this.config.ccuId ?? 0;
+
+    this.lumixClient.on('connected', (info) => {
+      console.log('[BridgeServer] Lumix camera connected:', info);
+      this.broadcast({ type: 'connected', info });
+      this.companion.setConnected(true);
+    });
+
+    this.lumixClient.on('stateChanged', (state: CameraState) => {
+      const mergedState = { ...(this.cameraStates.get(camNum) ?? {}), ...state };
+      this.cameraStates.set(camNum, mergedState);
+      this.broadcast({ type: 'state', cameraNumber: camNum, state: mergedState });
+      this.companion.updateCameraStateFor(camNum, mergedState as Record<string, unknown>);
+    });
+
+    this.lumixClient.on('disconnected', () => {
+      this.broadcast({ type: 'disconnected' });
+      this.companion.setConnected(false);
+    });
+
+    this.lumixClient.on('error', (err: Error) => {
+      console.error('[BridgeServer] Lumix error:', err);
+      this.broadcast({ type: 'error', message: err.message });
+    });
   }
 
   private wireCcuEvents(): void {
@@ -278,8 +334,11 @@ export class BridgeServer {
     cmd: string,
     params: Record<string, unknown>,
   ): Promise<void> {
-    if (!this.ccuClient?.connected) {
-      this.sendError(ws, 'Not connected to CCU');
+    const isLumix = this.lumixClient?.connected ?? false;
+    const isSony = this.ccuClient?.connected ?? false;
+
+    if (!isLumix && !isSony) {
+      this.sendError(ws, 'Not connected to any camera');
       return;
     }
 
@@ -290,61 +349,120 @@ export class BridgeServer {
     const currentState = this.cameraStates.get(targetCamera) ?? {};
     const stateUpdates: Partial<CameraState> = {};
 
-    switch (cmd) {
-      case 'setIris':
-        await this.ccuClient.setIris(num('value'), targetCamera);
-        stateUpdates.iris = num('value');
-        break;
-      case 'setMasterBlack':
-        await this.ccuClient.setMasterBlack(num('value'), targetCamera);
-        stateUpdates.masterBlack = num('value');
-        break;
-      case 'setBlackBalance':
-        await this.ccuClient.setBlackBalance(num('r'), num('g'), num('b'), targetCamera);
-        if (params['r'] !== undefined) stateUpdates.blackR = num('r');
-        if (params['g'] !== undefined) stateUpdates.blackG = num('g');
-        if (params['b'] !== undefined) stateUpdates.blackB = num('b');
-        break;
-      case 'setWhiteBalance':
-        await this.ccuClient.setWhiteBalance(num('r'), num('g'), num('b'), targetCamera);
-        if (params['r'] !== undefined) stateUpdates.whiteR = num('r');
-        if (params['g'] !== undefined) stateUpdates.whiteG = num('g');
-        if (params['b'] !== undefined) stateUpdates.whiteB = num('b');
-        break;
-      case 'setMasterGain':
-        await this.ccuClient.setMasterGain(num('value'), targetCamera);
-        stateUpdates.masterGain = num('value');
-        break;
-      case 'setMasterGamma':
-        await this.ccuClient.setMasterGamma(num('value'), targetCamera);
-        stateUpdates.masterGamma = num('value');
-        break;
-      case 'setSaturation':
-        await this.ccuClient.setSaturation(num('value'), targetCamera);
-        stateUpdates.saturation = num('value');
-        break;
-      case 'setDetailLevel':
-        await this.ccuClient.setDetailLevel(num('value'), targetCamera);
-        stateUpdates.detailLevel = num('value');
-        break;
-      case 'setBars':
-        await this.ccuClient.setBars(Boolean(params['on']), targetCamera);
-        stateUpdates.bars = Boolean(params['on']);
-        break;
-      case 'setCameraPower':
-        await this.ccuClient.setCameraPower(Boolean(params['on']), targetCamera);
-        stateUpdates.cameraPower = Boolean(params['on']);
-        break;
-      case 'setNdFilter':
-        await this.ccuClient.setNdFilter(num('value'), targetCamera);
-        stateUpdates.ndFilter = num('value');
-        break;
-      case 'setShutterSpeed':
-        await this.ccuClient.setShutterSpeed(num('value'), targetCamera);
-        stateUpdates.shutterSpeed = num('value');
-        break;
-      default:
-        this.sendError(ws, `Unknown command: ${cmd}`);
+    if (isLumix) {
+      // ── Lumix command routing ─────────────────────────────────────────────
+      const lx = this.lumixClient!;
+      switch (cmd) {
+        case 'setIris':
+          await lx.setIris(num('value'));
+          stateUpdates.iris = num('value');
+          break;
+        case 'setMasterBlack':
+          await lx.setMasterBlack(num('value'));
+          stateUpdates.masterBlack = num('value');
+          break;
+        case 'setWhiteBalance':
+          await lx.setWhiteBalance(num('r'), num('g'), num('b'));
+          stateUpdates.whiteR = num('r');
+          stateUpdates.whiteG = num('g');
+          stateUpdates.whiteB = num('b');
+          break;
+        case 'setMasterGain':
+          await lx.setMasterGain(num('value'));
+          stateUpdates.masterGain = num('value');
+          break;
+        case 'setSaturation':
+          await lx.setSaturation(num('value'));
+          stateUpdates.saturation = num('value');
+          break;
+        case 'setDetailLevel':
+          await lx.setDetailLevel(num('value'));
+          stateUpdates.detailLevel = num('value');
+          break;
+        case 'setBars':
+          await lx.setBars(Boolean(params['on']));
+          stateUpdates.bars = Boolean(params['on']);
+          break;
+        case 'setCameraPower':
+          await lx.setCameraPower(Boolean(params['on']));
+          stateUpdates.cameraPower = Boolean(params['on']);
+          break;
+        case 'setNdFilter':
+          await lx.setNdFilter(num('value'));
+          stateUpdates.ndFilter = num('value');
+          break;
+        case 'setShutterSpeed':
+          await lx.setShutterSpeed(num('value'));
+          stateUpdates.shutterSpeed = num('value');
+          break;
+        case 'setZoom':
+          await lx.setZoom(num('value'));
+          break;
+        case 'setRecording':
+          await lx.setRecording(Boolean(params['on']));
+          break;
+        default:
+          this.sendError(ws, `Unknown command: ${cmd}`);
+      }
+    } else {
+      // ── Sony 700PTP command routing ───────────────────────────────────────
+      const ccu = this.ccuClient!;
+      switch (cmd) {
+        case 'setIris':
+          await ccu.setIris(num('value'), targetCamera);
+          stateUpdates.iris = num('value');
+          break;
+        case 'setMasterBlack':
+          await ccu.setMasterBlack(num('value'), targetCamera);
+          stateUpdates.masterBlack = num('value');
+          break;
+        case 'setBlackBalance':
+          await ccu.setBlackBalance(num('r'), num('g'), num('b'), targetCamera);
+          if (params['r'] !== undefined) stateUpdates.blackR = num('r');
+          if (params['g'] !== undefined) stateUpdates.blackG = num('g');
+          if (params['b'] !== undefined) stateUpdates.blackB = num('b');
+          break;
+        case 'setWhiteBalance':
+          await ccu.setWhiteBalance(num('r'), num('g'), num('b'), targetCamera);
+          if (params['r'] !== undefined) stateUpdates.whiteR = num('r');
+          if (params['g'] !== undefined) stateUpdates.whiteG = num('g');
+          if (params['b'] !== undefined) stateUpdates.whiteB = num('b');
+          break;
+        case 'setMasterGain':
+          await ccu.setMasterGain(num('value'), targetCamera);
+          stateUpdates.masterGain = num('value');
+          break;
+        case 'setMasterGamma':
+          await ccu.setMasterGamma(num('value'), targetCamera);
+          stateUpdates.masterGamma = num('value');
+          break;
+        case 'setSaturation':
+          await ccu.setSaturation(num('value'), targetCamera);
+          stateUpdates.saturation = num('value');
+          break;
+        case 'setDetailLevel':
+          await ccu.setDetailLevel(num('value'), targetCamera);
+          stateUpdates.detailLevel = num('value');
+          break;
+        case 'setBars':
+          await ccu.setBars(Boolean(params['on']), targetCamera);
+          stateUpdates.bars = Boolean(params['on']);
+          break;
+        case 'setCameraPower':
+          await ccu.setCameraPower(Boolean(params['on']), targetCamera);
+          stateUpdates.cameraPower = Boolean(params['on']);
+          break;
+        case 'setNdFilter':
+          await ccu.setNdFilter(num('value'), targetCamera);
+          stateUpdates.ndFilter = num('value');
+          break;
+        case 'setShutterSpeed':
+          await ccu.setShutterSpeed(num('value'), targetCamera);
+          stateUpdates.shutterSpeed = num('value');
+          break;
+        default:
+          this.sendError(ws, `Unknown command: ${cmd}`);
+      }
     }
 
     const mergedState = { ...currentState, ...stateUpdates };

@@ -21,12 +21,14 @@ export interface CameraState {
 export type CameraStatesByNumber = Record<number, CameraState>;
 
 export interface BridgeConfig {
-  connectionMode?: 'tcp' | 'serial';
+  connectionMode?: 'tcp' | 'serial' | 'lumix-http';
   tcpHost?: string;
   tcpPort?: number;
   serialPath?: string;
   baudRate?: number;
   ccuId?: number;
+  lumixHost?: string;
+  lumixPort?: number;
 }
 
 export interface WiznetDevice {
