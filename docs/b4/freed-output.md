@@ -90,3 +90,67 @@ prove that a function was called.
 
 Neither proves byte-exactness against a capture from real FreeD equipment. That
 capture does not exist here, and issue #54 names it as the remaining item.
+
+## Zoom and focus: where the numbers come from
+
+The raw readings and the FreeD range do not share a scale, and the three
+sources do not agree with each other:
+
+| Origin | Range |
+|---|---|
+| serial `0x31` / `0x32` | `0x0000`–`0xFFFF` (zoom wide→tele, focus MOD→infinity) |
+| analog position, pin 10 / pin 11 | 2–7 V |
+| FreeD | 0–4095 |
+
+None of those pairs is a fixed relationship, so the mapping is **not a constant
+in the code**. `packages/bridge/src/protocol/LensCalibration.ts` interpolates
+between measured points held in a table per lens and per axis; the same tables
+serve the iris loop (issue #40), because two mapping mechanisms would be two
+behaviours.
+
+```ts
+const zoom: CalibrationTable = {
+  axis: 'zoom',
+  rawUnit: 'serial-16bit',   // or 'millivolt' for the analog pins
+  valueUnit: 'mm',           // focal length, so the count means something physical
+  points: [
+    { raw: 0x0000, value: 9.3 },
+    { raw: 0x8000, value: 80 },
+    { raw: 0xffff, value: 410 },
+  ],
+  source: 'measured on <lens>, <date>',
+};
+
+const axes = freeDLensAxes({ zoom: { table: zoom, raw: reading } });
+sender.update({ ...sample, zoom: axes.zoom, focus: axes.focus });
+```
+
+Commands `0x14`/`0x15` (focal length at tele and wide) and `0x16` (minimum
+object distance) are what make the value column physical rather than an
+arbitrary counter.
+
+### Outside the measured span the answer is "unknown"
+
+`interpolate` returns null beyond the outermost points instead of clamping to
+the end value. Clamping would assert the axis is at its stop — exactly what was
+*not* measured; all that is known is that the calibration does not reach this
+far. The null travels on as a missing axis, the encoder refuses it and the
+sender stays quiet, which is the correct report. A clamped 4095 would look like
+a lens racked fully to tele.
+
+No table means no value. Nothing here estimates.
+
+### What the checker rejects
+
+`checkCalibration` reports **every** problem, not the first: fewer than two
+points, a raw reading that appears twice, a non-monotone raw column, a flat
+step, and a value column that reverses direction. A descending value column is
+fine — that is how direction sense is stated.
+
+### Still open in #55
+
+The table mechanism, monotonicity and the "no calibration, no value" rule are
+covered by unit tests over both raw ranges. What is **not** covered is an axis
+driven over its full mechanical travel on a real lens: the numbers in the tests
+are fixtures, not measurements, and whether `0x0000`–`0xFFFF` spans the whole
+travel of a given lens is exactly the thing a hardware session has to answer.
