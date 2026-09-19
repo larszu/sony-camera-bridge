@@ -18,6 +18,7 @@ connector, and for reading zoom/focus demands as input devices.
 | [`spc7000-pinout.md`](spc7000-pinout.md) | Transcription of the 3ality SPC-7000 connector sheet, with an analysis of what it corroborates and what it adds. |
 | [`spc7000-pinout.pdf`](spc7000-pinout.pdf) | The original sheet (2010). Source for the transcription above. |
 | [`claude-code-brief.md`](claude-code-brief.md) | The execution brief this work started from. **Partly outdated** — see below. |
+| [`freed-output.md`](freed-output.md) | FreeD D1 output: the split between encoder and sender, what the byte table is verified against, and why address, port and rate have no defaults. |
 | [`../reuse-audit.md`](../reuse-audit.md) | What already exists in this repository and the other repositories, with a reuse verdict per criterion. |
 
 ## Where this work lives
