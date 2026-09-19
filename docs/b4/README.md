@@ -19,6 +19,7 @@ connector, and for reading zoom/focus demands as input devices.
 | [`spc7000-pinout.pdf`](spc7000-pinout.pdf) | The original sheet (2010). Source for the transcription above. |
 | [`claude-code-brief.md`](claude-code-brief.md) | The execution brief this work started from. **Partly outdated** — see below. |
 | [`freed-output.md`](freed-output.md) | FreeD D1 output: the split between encoder and sender, what the byte table is verified against, and why address, port and rate have no defaults. |
+| [`axis.md`](axis.md) | The axis state machine: setpoint, feedback, limits, homing, status — and the order in which a stop engages the brake and cuts torque. |
 | [`device-profiles.md`](device-profiles.md) | Profile format for retro-fitted foreign heads: what a profile holds, what is rejected outright, and why an unstated figure costs capability instead of getting a default. |
 | [`../reuse-audit.md`](../reuse-audit.md) | What already exists in this repository and the other repositories, with a reuse verdict per criterion. |
 
