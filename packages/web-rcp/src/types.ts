@@ -62,6 +62,8 @@ export interface BridgeConfig {
   /** HTTP-CGI: Firmware-Familie und Preset-Versatz. */
   cgiFamily?: 'vissonic' | 'sony';
   cgiPresetOffset?: number;
+  /** Multiviewer: Stream-Adresse (RTSP/HLS/MJPEG) aus dem Streaming-Teil der Kamera. */
+  streamUrl?: string;
   /** VISCA ueber RS-232: Geraetepfad, Baudrate, Adresse in der Kette (1..7). */
   viscaSerialPath?: string;
   viscaBaudRate?: number;

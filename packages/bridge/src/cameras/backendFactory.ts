@@ -63,6 +63,12 @@ export interface CameraConfig {
   viscaSerialPath?: string; viscaBaudRate?: number; viscaAddress?: number;
   /** DJI-Gimbals: serieller Pfad (Osmo: CDC, Ronin: SLCAN-Stecker). */
   djiPath?: string; djiBaudRate?: number;
+  /**
+   * Stream-Adresse fuer den Multiviewer (RTSP/HLS/MJPEG). Kommt aus dem
+   * separaten Streaming-Teil der Kamera, nicht aus dem Steuerpfad -- die
+   * Bridge steuert ueber CGI/VISCA und zeigt daneben das Bild.
+   */
+  streamUrl?: string;
 }
 
 /** One uniform interface every camera backend satisfies. */
